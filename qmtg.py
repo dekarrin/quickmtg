@@ -1,4 +1,4 @@
-from quickmtg.actions import lookup_cards
+from quickmtg.actions import search_cards, show_card
 from quickmtg import scryfall
 import sys
 import pprint
@@ -31,13 +31,24 @@ def _parse_cli_and_run():
     subparsers = parser.add_subparsers(description="Functionality to execute.", metavar=" SUBCOMMAND ", dest='cmd')
     subparsers.required = True
 
-    # Card lookup
-    card_parser = subparsers.add_parser('card', help='Look up a card.', description="Search for a card by name.")
-    """:type : argparse.ArgumentParser"""
-    card_parser.add_argument('names', nargs='+', metavar='CARD')
-    card_parser.add_argument('-f', '--fuzzy', help="Do a fuzzy search instead of exact name match.", action='store_true')
-    card_parser.add_argument('-s', '--set', help="Limit the lookup to a particular set denoted by the three letter set-code.", action='store')
-    card_parser.set_defaults(func=lambda ns: lookup_cards(api, ns.fuzzy, ns.set, *ns.names))
+    # Card actions
+    card_parser = subparsers.add_parser('card', help='Perform an action against the card API.', description="Card lookup actions.")
+    card_subs = card_parser.add_subparsers(description="Action on card(s)", metavar="ACTION", dest='cmdaction')
+    card_subs.required = True
+
+    # Card search
+    card_search_parser = card_subs.add_parser('search', help='Search for a card by matching against the name. The most recent card to be released that matches will be returned.', description="Search for a card by name.")
+    card_search_parser.add_argument('names', help="The name(s) of the card(s) to search for.", nargs='+', metavar='CARD')
+    card_search_parser.add_argument('-f', '--fuzzy', help="Do a fuzzy search instead of exact name match.", action='store_true')
+    card_search_parser.add_argument('-s', '--set', help="Limit the lookup to a particular set denoted by the three to five-letter set-code.", action='store')
+    card_search_parser.set_defaults(func=lambda ns: search_cards(api, ns.fuzzy, ns.set, *ns.names))
+
+    # Card look up
+    card_search_parser = card_subs.add_parser('show', help='Look up a particular card by using its set ID and collector number within that set.', description="Look up a card by its number.")
+    card_search_parser.add_argument('set', help="The three or to five-letter code that represents the set the card is in")
+    card_search_parser.add_argument('num', help="The collector number of the card within the set.")
+    card_search_parser.add_argument('-l', '--lang', help="The 2-3 letter language code of the language to get details of the card in, if non-english is desired.")
+    card_search_parser.set_defaults(func=lambda ns: show_card(api, ns.set, ns.num, ns.lang))
     
     args = parser.parse_args()
     args.func(args)
