@@ -14,23 +14,40 @@ Python 3.7, but other versions of Python 3.x may also be compatible.
 ### Download/Install
 To download and install these scripts, first clone this repository:
 
-`git clone git@github.com:dekarrin/quickmtg.git`
+```bash
+git clone git@github.com:dekarrin/quickmtg.git
+```
 
 Enter the root of your repository clone:
 
-`cd quickmtg`
+```bash
+cd quickmtg
+```
 
 Set up a virtual environment to run quickmtg in:
 
-`python -m venv .venv`
+```bash
+python -m venv .venv
+```
 
 Activate the virtual environment:
 
-`. .venv/bin/activate` (or `. .venv/Scripts/activate` on windows)
+```bash
+. .venv/bin/activate`
 
-. Then go to the root of your
-repository clone and set up a virtual environment by doing `python -m venv
-.venv`.
+# OR on windows, do this instead:
+. .venv/Scripts/activate`
+```
+
+Install the dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+And you are good to go! You will need to be in this directory to execute qmtg
+commands, so if you exit this dir, you will need to return to it before running
+them. Remember to activate the virtual environment before using the commands.
 
 ### Run
 To run, do `python qmtg.py` in the repo root. Help can be seen by doing `python
