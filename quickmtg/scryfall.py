@@ -43,6 +43,8 @@ class ScryfallAgent:
             self._filestore = _FileCache(file_home, existing_store=data['files'])
         except:
             _log.warn("couldn't load cache file; a new cache will be started")
+            # start one so we dont get another warning
+            self._save_cache()
 
     def get_card_by_name(self,
             name: str, fuzzy: bool=False, set_code: Optional[str] = None
