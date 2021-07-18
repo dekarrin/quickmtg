@@ -45,14 +45,18 @@ Install the dependencies:
 pip install -r requirements.txt
 ```
 
-And you are good to go! You will need to be in this directory to execute qmtg
-commands, so if you exit this dir, you will need to return to it before running
-them. Remember to activate the virtual environment before using the commands.
+And you are good to go! You will need to be in this directory to execute qmtg.py
+directly, so if you exit this dir, you will need to return to it before running
+them and ensure the virtual environment is activated.
+
+Alternatively, you can just execute the `qmtg` shell script, which can be
+executed from any location and takes the same parameters as python qmtg. The
+rest of these instructions just use that method.
 
 ### Run
-To run, do `python qmtg.py` in the repo root. Help can be seen by doing `python
-qmtg.py --help`.
+To run, execute `qmtg` in the repo root. Help can be seen by doing
+`qmtg --help`.
 
 ### Test
 Tests are run by doing `./test.sh`. You need a virtual environment named `.venv`
-located in the current working directory for this to work.
+located in the root of the repo for this to work.
