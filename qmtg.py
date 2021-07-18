@@ -37,10 +37,10 @@ def _parse_cli_and_run():
     view_subs.required = True
 
     # View creation
-    view_create_parser = view_subs.add_parser('create', help='Create a new binder view from the given owned cards list.', description='Create a new binder view.')
-    view_create_parser.add_argument('list_file', help='The file to parse for the cards in it. Must contain a list in tappedout.net board format text, which is known to sometimes be not perfect.')
+    view_create_parser = view_subs.add_parser('create', help='Create a new binder view from the given owned cards list. HTML pages containing the binder are output to a directory, and an index.html is created as the starting point for viewing the binder.', description='Create a new binder view.')
+    view_create_parser.add_argument('input_list', help='The file to parse for the cards in it. Must contain a list in tappedout.net board format text, which is known to sometimes be not perfect.')
     view_create_parser.add_argument('output_dir', help="The directory to store the output files in. Will be created if it doesn't already exist.")
-    view_create_parser.set_defaults(func=lambda ns: create_view(api, ns.list_file, ns.output_dir))
+    view_create_parser.set_defaults(func=lambda ns: create_view(api, ns.input_list, ns.output_dir))
 
     # Card actions
     card_parser = subparsers.add_parser('card', help='Perform an action against the card API.', description="Card lookup actions.")
