@@ -58,5 +58,4 @@ To run, execute `qmtg` in the repo root. Help can be seen by doing
 `qmtg --help`.
 
 ### Test
-Tests are run by doing `./test.sh`. You need a virtual environment named `.venv`
-located in the root of the repo for this to work.
+Tests are run by executing `test.sh` in the repo root.
