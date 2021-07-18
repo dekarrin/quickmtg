@@ -138,7 +138,7 @@ class Card:
             if 'rarity' in kwargs:
                 self.rarity = kwargs['rarity']
             if 'faces' in kwargs:
-                self.faces = list(Face(**f) for f in kwargs['faces'])
+                self.faces = list((f if isinstance(f, Face) else Face(**f)) for f in kwargs['faces'])
             if 'number' in kwargs:
                 self.number = kwargs['number']
     
@@ -166,7 +166,7 @@ class Card:
         return hash((self.id, self.set, self.rarity, self.number, frozenset(self.faces)))
 
     def __str__(self) -> str:
-        return 'Card<{:s}:{:d} {!r}>'.format(self.set, self.number, self.name)
+        return 'Card<{:s}:{:s} {!r}>'.format(self.set, self.number, self.name)
 
     def __repr__(self) -> str:
         fmt = 'Card(id={!r}, set={!r}, number={!r}, rarity={!r}, faces={!r})'
@@ -287,7 +287,7 @@ class OwnedCard(Card):
         fstr = ''
         if self.foil:
             fstr = ' (FOIL)'
-        return 'OwnedCard<{:s}:{:d} {!r}{:s}>'.format(self.set, self.number, self.name, fstr)
+        return 'OwnedCard<{:s}:{:s} {!r}{:s}>'.format(self.set, self.number, self.name, fstr)
 
     def __repr__(self) -> str:
         fmt = 'OwnedCard(id={!r}, set={!r}, number={!r}, rarity={!r}, faces={!r}, condition={!r}, foil={!r})'

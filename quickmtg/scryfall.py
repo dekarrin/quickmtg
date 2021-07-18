@@ -53,6 +53,8 @@ class ScryfallAgent:
         set_code is given, it is a three to five-letter set code that the lookup
         will be limited to."""
 
+        set_code = set_code.lower()
+
         params = {
             'pretty': self._pretty_response
         }
@@ -78,6 +80,7 @@ class ScryfallAgent:
         Results will always be sorted as set/collector num, ascending.
         """
 
+        set_code = set_code.lower()
         q = build_search_query(name=name, exact=exact, set=set_code)
         params = {
             'pretty': self._pretty_response,
@@ -89,7 +92,11 @@ class ScryfallAgent:
         
         _, resp = self._http.request('GET', '/cards/search', query=params)
         results = list()
-        for r in resp:
+
+        if 'data' not in resp:
+            raise TypeError("response from scryfall did not contain a results list")
+        
+        for r in resp['data']:
             c = _parse_resp_card(r)
             results.append(c)
 
@@ -106,6 +113,7 @@ class ScryfallAgent:
         Returns image bytes, and file type as either "jpg" or "png". Calling at
         least once ensures it is created and locally cached for future calls.
         """
+        set_code = set_code.lower()
         cachelang = lang if lang is not None else 'en'
         img_format = 'png' if size.lower() == 'full' else 'jpg'
         frontback = 'back' if back else 'front'
@@ -117,7 +125,7 @@ class ScryfallAgent:
         except TypeError:
             pass
 
-        cachepath = '/images/set-{0:s}/card-{1:s}/{0:s}-{1:s}-{2:s}-{3:s}-{4:s}.{5:s}'.format(normalized_set(set_code), num_padded, frontback, size.lower(), cachelang, img_format)
+        cachepath = '/images/set-{0:s}/card-{1:s}/{0:s}-{1:s}-{2:s}-{3:s}-{4:s}.{5:s}'.format(set_code, num_padded, frontback, size.lower(), cachelang, img_format)
 
         file_data, exists = self._filestore.get(cachepath)
         if exists:
@@ -136,9 +144,9 @@ class ScryfallAgent:
         
         status, resp = self._picshttp.request('GET', path, query=params)
         if status == 422:
-            raise ValueError('Card does not have a back face: {:s}:{:03d}'.format(normalized_set(set_code), number))
+            raise ValueError('Card does not have a back face: {:s}:{:03d}'.format(set_code, number))
         if status == 404:
-            raise ValueError('Card does not exist in scryfall: {:s}:{:03d}'.format(normalized_set(set_code), number))
+            raise ValueError('Card does not exist in scryfall: {:s}:{:03d}'.format(set_code, number))
         self._filestore.set(cachepath, resp)
         self._save_cache()
 
@@ -147,9 +155,11 @@ class ScryfallAgent:
         lang is given, card in that language is retrieved instead of the english
         one."""
 
+        set_code = set_code.lower()
+
         # check cache first
         cachelang = lang if lang is not None else 'en'
-        cachepath = '/sets/{:s}/cards/{:s}/{:s}'.format(normalized_set(set_code), number, cachelang)
+        cachepath = '/sets/{:s}/cards/{:s}/{:s}'.format(set_code, number, cachelang)
         cached, hit = self._cache.get(cachepath)
         if hit:
             return Card(**cached)
@@ -349,8 +359,6 @@ class _FileCache(_PathCache):
         
         return (data, meta), True
 
-def normalized_set(set_code: str) -> str:
-    return set_code.upper()
 
 def _recurse(leaf_fn: Callable[[str, Any], Any], obj: Union[str, Dict[str, Any]], cur_path: str):
     """Recurse on file-like paths, dont really care about the values"""
@@ -408,4 +416,4 @@ def build_search_query(name: str=None, set: str=None, exact: bool=False):
         q += ' set:' + set
 
     
-    return q
+    return q.strip()

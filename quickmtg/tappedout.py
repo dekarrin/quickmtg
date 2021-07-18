@@ -1,6 +1,6 @@
 from typing import Tuple
 from . import card
-from .card import OwnedCard, Card
+from .card import Face, OwnedCard, Card
 
 import html
 
@@ -12,7 +12,7 @@ def parse_list_line(line: str) -> Tuple[int, OwnedCard]:
     return count, c
 
 def to_list_line(owned: int, c: OwnedCard) -> str:
-    return '{:d}x {:s}'.format(owned, to_list_line(c))
+    return '{:d}x {:s}'.format(owned, to_card_line(c))
 
 def parse_card_id(line: str) -> Card:
     """
@@ -23,19 +23,32 @@ def parse_card_id(line: str) -> Card:
 
     # remove '(' and ')'
     raw_set_id = raw_set_id[1:-1]
-    num = 0
+    num = ''
     if ':' in raw_set_id:
         set_code, raw_num = raw_set_id.split(':')
-        num = int(raw_num)
+        try:
+            digits = int(raw_num)
+            num = '{:03d}'.format(digits)
+        except TypeError:
+            pass
+
     else:
         set_code = raw_set_id
 
-    c = Card(name=name, set=set_code, number=num)
+    c = Card(faces=(Face(name=name),), set=set_code, number=num)
+
     return c
 
 def to_card_id(c: Card) -> str:
-    fmt = '{:s} ({:s}:{:03d})'
-    return fmt.format(c.faces[0].name, c.set, c.number)
+    num = c.number
+    try:
+        num_int = int(num)
+        num = '{:03d}'.format(num_int)
+    except TypeError:
+        pass
+
+    fmt = '{:s} ({:s}:{:s})'
+    return fmt.format(c.faces[0].name, c.set.upper(), num)
 
 def parse_card_line(line: str) -> OwnedCard:
     foil = False
@@ -48,7 +61,9 @@ def parse_card_line(line: str) -> OwnedCard:
         else:
             cond = card.cond_from_symbol(end)    
         curline, end = curline.rsplit(' ', 1)
-    c_args = parse_card_id(curline).to_dict()
+    curline = curline + ' ' + end
+    crd = parse_card_id(curline)
+    c_args = crd.to_dict()
     c = OwnedCard(condition=cond, foil=foil, **c_args)
     return c
 

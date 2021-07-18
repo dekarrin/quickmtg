@@ -1,7 +1,11 @@
 from quickmtg.card import OwnedCard
 from . import scryfall, tappedout
+import logging
 import pprint
 import os
+
+_log = logging.getLogger(__name__)
+_log.setLevel(logging.DEBUG)
 
 def search_cards(api: scryfall.ScryfallAgent, fuzzy: bool=False, set: str=None, *cards):
     if len(cards) < 1:
@@ -48,6 +52,7 @@ def create_view(api: scryfall.ScryfallAgent, list_file: str, output_dir: str):
                     'count': count
                 })
             except Exception as e:
+                _log.exception("problem reading line {:d}")
                 print("problem reading line {:d} of tappedout list so skipping line: {:s}".format(lineno, str(e)))
     
     print("Updated list:")
