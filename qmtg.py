@@ -1,4 +1,4 @@
-from quickmtg.actions import search_cards, show_card
+from quickmtg.actions import search_cards, show_card, get_card_image
 from quickmtg import scryfall
 import sys
 import pprint
@@ -49,6 +49,14 @@ def _parse_cli_and_run():
     card_search_parser.add_argument('num', help="The collector number of the card within the set.")
     card_search_parser.add_argument('-l', '--lang', help="The 2-3 letter language code of the language to get details of the card in, if non-english is desired.")
     card_search_parser.set_defaults(func=lambda ns: show_card(api, ns.set, ns.num, ns.lang))
+
+    card_image_parser = card_subs.add_parser('image', help="Ensure that a card's image is downloaded.")
+    card_image_parser.add_argument('set', help="The three or to five-letter code that represents the set the card is in")
+    card_image_parser.add_argument('num', help="The collector number of the card within the set.")
+    card_image_parser.add_argument('size', help="The collector number of the card within the set.", choices=['full', 'large', 'normal', 'small'])
+    card_image_parser.add_argument('-l', '--lang', help="The 2-3 letter language code of the language to get details of the card in, if non-english is desired.")
+    card_image_parser.add_argument('-b', '--back', help="Get the back face instead of the front face, if there is one.", action='store_true')
+    card_image_parser.set_defaults(func=lambda ns: get_card_image(api, ns.set, ns.num, ns.size, ns.lang, ns.back))
     
     args = parser.parse_args()
     args.func(args)

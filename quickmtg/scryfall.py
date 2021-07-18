@@ -1,16 +1,19 @@
+import os
 import pickle
 import logging
-from typing import Any, Dict, Optional, Tuple
+from posixpath import join
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 from . import http
 
 
 _log = logging.getLogger(__name__)
+_log.setLevel(logging.DEBUG)
 
 class ScryfallAgent:
     """
     Makes calls to scryfall but uses local cache where possible.
     """
-    def __init__(self, host: str, pretty: bool=False, cachefile='scryfall.p'):
+    def __init__(self, host: str, pretty: bool=False, cachefile: str='scryfall.p', file_home: str='.scryfall'):
         """Create a new agent for the given scryfall host. The host should be
         the dns name only and should not include the URI scheme. If pretty is
         set, JSON responses will be prettified; disable this for production.
@@ -20,13 +23,21 @@ class ScryfallAgent:
         elif host.lower().startswith('https:'):
             host = host[6:]
         self._http = http.HttpAgent(host, ssl=True, antiflood_secs=0.3)
+        self._picshttp = http.HttpAgent(host, ssl=True, antiflood_secs=0.3, response_payload='binary', ignored_errors=[422, 404])
         self._pretty_response = pretty
         self._cachefile = cachefile
-        self._cache = pathcache()
+        self._cache = _PathCache()
+        self._filestore = _FileCache(file_home)
         
         try:
             with open(cachefile, 'rb') as fp:
-                self._cache = pathcache(pickle.load(fp))
+                data = pickle.load(fp)
+            if 'requests' not in data:
+                data['requests'] = data
+                data['files'] = dict()
+
+            self._cache = _PathCache(existing_store=data['requests'])
+            self._filestore = _FileCache(file_home, existing_store=data['files'])
         except:
             _log.warn("couldn't load cache file; a new cache will be started")
 
@@ -43,8 +54,50 @@ class ScryfallAgent:
             params['fuzzy'] = name
         else:
             params['exact'] = name
+
+        if set_code is not None:
+            params['set'] = set_code
+        
         _, resp = self._http.request('GET', '/cards/named', query=params)
         return resp
+
+    def get_card_image(self, set_code: str, number: int, lang: str=None, size='full', back=False) -> Tuple[bytes, str]:
+        """Get image on a card by its collector's number within a set. If
+        lang is given, card in that language is retrieved instead of the english
+        one.
+        
+        Size can be changed. It can be either 'full', 'small', 'normal', or
+        'large'.
+
+        Returns image bytes, and file type as either "jpg" or "png". Calling at
+        least once ensures it is created and locally cached for future calls.
+        """
+        cachelang = lang if lang is not None else 'en'
+        img_format = 'png' if size.lower() == 'full' else 'jpg'
+        frontback = 'back' if back else 'front'
+        cachepath = '/images/set-{0:s}/card-{1:d}/{0:s}-{1:d}-{2:s}-{3:s}-{4:s}.{4:5}'.format(normalized_set(set_code), number, frontback, size.lower(), cachelang, img_format)
+
+        file_data, exists = self._filestore.get(cachepath)
+        if exists:
+           return file_data[0], img_format
+
+        # otherwise, need to make the scryfall call
+        lang_url = '/' + lang if lang is not None else ''
+        path = '/cards/{:s}/{:s}{:s}'.format(set_code, number, lang_url)
+        params = {
+            'version': 'png' if size.lower() == 'full' else size.lower(),
+            'format': 'image'
+        }
+        if back:
+            params['face'] = 'back'
+        
+        status, resp = self._picshttp.request('GET', path, query=params)
+        if status == 422:
+            raise ValueError('Card does not have a back face: {:s}:{:d}'.format(normalized_set(set_code), number))
+        if status == 404:
+            raise ValueError('Card does not exist in scryfall: {:s}:{:d}'.format(normalized_set(set_code), number))
+        self._filestore.set(cachepath, resp)
+        self._save_cache()
 
     def get_card_by_num(self, set_code: str, number: int, lang: str=None):
         """Get details on a card by its collector's number within a set. If
@@ -53,7 +106,7 @@ class ScryfallAgent:
 
         # check cache first
         cachelang = lang if lang is not None else 'en'
-        cachepath = '/sets/{:s}/cards/{:s}/{:s}'.format(normalized_set(set_code), number, cachelang)
+        cachepath = '/sets/{:s}/cards/{:d}/{:s}'.format(normalized_set(set_code), number, cachelang)
         cached, hit = self._cache.get(cachepath)
         if hit:
             return cached
@@ -72,12 +125,15 @@ class ScryfallAgent:
     def _save_cache(self):
         try:
             with open(self._cachefile, 'wb') as fp:
-                pickle.dump(self._cache.store, fp)
+                pickle.dump({
+                    'requests': self._cache.store,
+                    'files': self._filestore.store
+                }, fp)
         except:
             _log.warn("couldn't load cache file; a new cache will be started")
 
 
-class pathcache:
+class _PathCache:
     def __init__(self, existing_store: Optional[Dict]=None):
         self._store = dict()
         if existing_store is not None:
@@ -162,7 +218,101 @@ class pathcache:
         return self._store
 
     
+class _FileCache(_PathCache):
+    def __init__(self, root_dir: str, existing_store: Optional[Dict]=None):
+        super().__init__(existing_store)
+        self._root = root_dir
+        
+        try:
+            os.mkdir(root_dir)
+        except FileExistsError:
+            pass
+            # It's fine if it already exists
+        
+        if not os.path.isdir(root_dir):
+            raise ValueError("{!r} does not exist for local file cache".format(root_dir))
 
+    def reset(self):
+        """Delete all local files to reset the cache."""
+        self.clear('/')
+
+    def clear(self, path: str):
+        """
+        Clear all entries at the given path recursively.
+        """
+        path = path.strip('/')
+        if path == '':
+            start = self._store
+        else:
+            comps = path.split(os.path.sep)
+            cur = self._store
+            for p in comps:
+                if p not in cur:
+                    # we are done, it's already clear
+                    super().clear(path)
+                    return
+                cur = cur[p]
+            start = cur
+
+        _recurse(lambda path, _: os.unlink(path), start, self._root)
+        super().clear(path)
+
+    def set(self, path: str, value: bytes):
+        """Set the file at the given path. If it doesn't yet exist, it is
+        created, as is any parent directories"""
+        full_path = os.path.abspath(os.path.join(self._root, path))
+        size = len(bytes)
+        super().set(path, {'filepath': full_path, 'size': size})
+
+        norm_path = path.strip('/')
+        if norm_path == '':
+            # it won't be, that's not allowed by super().set(), but double check anyways
+            raise ValueError('Path cannot be root or empty')
+        
+        comps = reversed(norm_path.split(os.path.sep))
+        partial_path = self._root
+        try:
+            for c in comps[:-1]:
+                partial_path = os.path.join(partial_path, c)
+                try:
+                    os.mkdir(partial_path)
+                except FileExistsError:
+                    pass
+                    # this is fine, just dont create the dir
+            
+            # okay, now actually create the file, since parent dirs have been
+            # made
+            with open(full_path, 'wb') as fp:
+                fp.write(value)
+        except:
+            super().clear(path)
+            raise
+    
+    def get(self, path: str) -> Tuple[Tuple[bytes, Any], bool]:
+        """Get the file at the given path. If it doesn't exist, (None, False) is
+        returned; otherwise ((filebytes, metadata), True) is returned where
+        value is the value stored at that path."""
+        meta, exists = super().get(path)
+        if not exists:
+            return None, False
+        
+        filepath = meta['filepath']
+        size = meta['size']
+
+        with open(filepath, 'rb') as fp:
+            data = fp.read(size)
+        
+        return (data, meta), True
 
 def normalized_set(set_code: str) -> str:
     return set_code.upper()
+
+def _recurse(leaf_fn: Callable[[str, Any], Any], obj: Union[str, Dict[str, Any]], cur_path: str):
+    """Recurse on file-like paths, dont really care about the values"""
+    if isinstance(obj, dict):
+        for k in obj:
+            full_path = os.path.join(cur_path, k)
+            _recurse(leaf_fn, obj[k], full_path)
+    else:
+        leaf_fn(cur_path, obj)
+    
