@@ -87,7 +87,7 @@ class Card:
         self.set: str = ''
         self.rarity: str = ''
         self.faces: List[Face] = list()
-        self.number: int = 0
+        self.number: str = 0
 
         if kwargs is not None:
             if 'id' in kwargs:
@@ -99,7 +99,7 @@ class Card:
             if 'faces' in kwargs:
                 self.faces = list(Face(**f) for f in kwargs['faces'])
             if 'number' in kwargs:
-                self.number = int(kwargs['number'])
+                self.number = kwargs['number']
 
     @property
     def name(self) -> str:
