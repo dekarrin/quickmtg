@@ -75,7 +75,7 @@ class ScryfallAgent:
         cachelang = lang if lang is not None else 'en'
         img_format = 'png' if size.lower() == 'full' else 'jpg'
         frontback = 'back' if back else 'front'
-        cachepath = '/images/set-{0:s}/card-{1:d}/{0:s}-{1:03d}-{2:s}-{3:s}-{4:s}.{4:5}'.format(normalized_set(set_code), number, frontback, size.lower(), cachelang, img_format)
+        cachepath = '/images/set-{0:s}/card-{1:d}/{0:s}-{1:03d}-{2:s}-{3:s}-{4:s}.{5:s}'.format(normalized_set(set_code), number, frontback, size.lower(), cachelang, img_format)
 
         file_data, exists = self._filestore.get(cachepath)
         if exists:
@@ -83,7 +83,7 @@ class ScryfallAgent:
 
         # otherwise, need to make the scryfall call
         lang_url = '/' + lang if lang is not None else ''
-        path = '/cards/{:s}/{:s}{:s}'.format(set_code, number, lang_url)
+        path = '/cards/{:s}/{:d}{:s}'.format(set_code, number, lang_url)
         params = {
             'version': 'png' if size.lower() == 'full' else size.lower(),
             'format': 'image'
@@ -148,7 +148,7 @@ class _PathCache:
         if path == '':
             self._store = dict()
 
-        comps = path.split('/')
+        comps = list(path.split('/'))
         
         # if any part of the path does not exist, already done
         search = self._store
@@ -172,7 +172,7 @@ class _PathCache:
         if path == '':
             raise TypeError("Empty or root as path is invalid")
 
-        comps = path.split('/')
+        comps = list(path.split('/'))
 
         cur = self._store
         navpath = ''
@@ -196,7 +196,7 @@ class _PathCache:
         if path == '':
             raise TypeError("Empty or root as path is invalid")
 
-        comps = path.split('/')
+        comps = list(path.split('/'))
 
         cur = self._store
         navpath = ''
@@ -244,7 +244,7 @@ class _FileCache(_PathCache):
         if path == '':
             start = self._store
         else:
-            comps = path.split(os.path.sep)
+            comps = list(path.split(os.path.sep))
             cur = self._store
             for p in comps:
                 if p not in cur:
@@ -260,8 +260,9 @@ class _FileCache(_PathCache):
     def set(self, path: str, value: bytes):
         """Set the file at the given path. If it doesn't yet exist, it is
         created, as is any parent directories"""
-        full_path = os.path.abspath(os.path.join(self._root, path))
-        size = len(bytes)
+        joined_path = '/'.join([self._root.rstrip('/'), path.lstrip('/')])
+        full_path = os.path.abspath(joined_path)
+        size = len(value)
         super().set(path, {'filepath': full_path, 'size': size})
 
         norm_path = path.strip('/')
@@ -269,7 +270,10 @@ class _FileCache(_PathCache):
             # it won't be, that's not allowed by super().set(), but double check anyways
             raise ValueError('Path cannot be root or empty')
         
-        comps = reversed(norm_path.split(os.path.sep))
+        print(norm_path)
+        comps = list(reversed(norm_path.split('/')))
+        import pprint
+        pprint.pprint(comps)
         partial_path = self._root
         try:
             for c in comps[:-1]:
