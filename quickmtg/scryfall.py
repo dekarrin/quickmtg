@@ -95,13 +95,13 @@ class ScryfallAgent:
 
         return results
 
-    def get_card_image(self, set_code: str, number: int, lang: str=None, size='full', back=False) -> Tuple[bytes, str]:
+    def get_card_image(self, set_code: str, number: str, lang: str=None, size='full', back=False) -> Tuple[bytes, str]:
         """Get image on a card by its collector's number within a set. If
         lang is given, card in that language is retrieved instead of the english
         one.
         
-        Size can be changed. It can be either 'full', 'small', 'normal', or
-        'large'.
+        Size can be specified. It can be either 'full', 'small', 'normal', or
+        'large', and defaults to full.
 
         Returns image bytes, and file type as either "jpg" or "png". Calling at
         least once ensures it is created and locally cached for future calls.
@@ -109,7 +109,15 @@ class ScryfallAgent:
         cachelang = lang if lang is not None else 'en'
         img_format = 'png' if size.lower() == 'full' else 'jpg'
         frontback = 'back' if back else 'front'
-        cachepath = '/images/set-{0:s}/card-{1:03d}/{0:s}-{1:03d}-{2:s}-{3:s}-{4:s}.{5:s}'.format(normalized_set(set_code), number, frontback, size.lower(), cachelang, img_format)
+
+        num_padded = number
+        try:
+            only_int = int(number)
+            num_padded = '{:03d}'.format(only_int)
+        except TypeError:
+            pass
+
+        cachepath = '/images/set-{0:s}/card-{1:s}/{0:s}-{1:s}-{2:s}-{3:s}-{4:s}.{5:s}'.format(normalized_set(set_code), num_padded, frontback, size.lower(), cachelang, img_format)
 
         file_data, exists = self._filestore.get(cachepath)
         if exists:
@@ -118,7 +126,7 @@ class ScryfallAgent:
 
         # otherwise, need to make the scryfall call
         lang_url = '/' + lang if lang is not None else ''
-        path = '/cards/{:s}/{:d}{:s}'.format(set_code, number, lang_url)
+        path = '/cards/{:s}/{:s}{:s}'.format(set_code, number, lang_url)
         params = {
             'version': 'png' if size.lower() == 'full' else size.lower(),
             'format': 'image'
