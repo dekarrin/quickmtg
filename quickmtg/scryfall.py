@@ -75,7 +75,7 @@ class ScryfallAgent:
         cachelang = lang if lang is not None else 'en'
         img_format = 'png' if size.lower() == 'full' else 'jpg'
         frontback = 'back' if back else 'front'
-        cachepath = '/images/set-{0:s}/card-{1:d}/{0:s}-{1:d}-{2:s}-{3:s}-{4:s}.{4:5}'.format(normalized_set(set_code), number, frontback, size.lower(), cachelang, img_format)
+        cachepath = '/images/set-{0:s}/card-{1:d}/{0:s}-{1:03d}-{2:s}-{3:s}-{4:s}.{4:5}'.format(normalized_set(set_code), number, frontback, size.lower(), cachelang, img_format)
 
         file_data, exists = self._filestore.get(cachepath)
         if exists:
