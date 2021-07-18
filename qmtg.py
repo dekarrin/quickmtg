@@ -1,4 +1,4 @@
-from quickmtg.actions import search_cards, show_card, get_card_image
+from quickmtg.actions import search_cards, show_card, get_card_image, create_view
 from quickmtg import scryfall
 import sys
 import pprint
@@ -31,12 +31,23 @@ def _parse_cli_and_run():
     subparsers = parser.add_subparsers(description="Functionality to execute.", metavar=" SUBCOMMAND ", dest='cmd')
     subparsers.required = True
 
+    # View actions
+    view_parser = subparsers.add_parser('view', help='Operates on binder views generated from tappedout.net card lists in board format.', description="HTML binder operations.")
+    view_subs = view_parser.add_subparsers(description="Action on views", metavar="ACTION", dest='cmdaction')
+    view_subs.required = True
+
+    # View creation
+    view_create_parser = view_subs.add_parser('create', help='Create a new binder view from the given owned cards list.', description='Create a new binder view.')
+    view_create_parser.add_argument('list_file', help='The file to parse for the cards in it. Must contain a list in tappedout.net board format text, which is known to sometimes be not perfect.')
+    view_create_parser.add_argument('output_dir', help="The directory to store the output files in. Will be created if it doesn't already exist.")
+    view_create_parser.set_defaults(func=lambda ns: create_view(api, ns.list_file, ns.output_dir))
+
     # Card actions
     card_parser = subparsers.add_parser('card', help='Perform an action against the card API.', description="Card lookup actions.")
     card_subs = card_parser.add_subparsers(description="Action on card(s)", metavar="ACTION", dest='cmdaction')
     card_subs.required = True
 
-    # Card search
+    # Card search - NOTE: uses /cards/named endpoint, NOT /cards/search. Update to use later at some point
     card_search_parser = card_subs.add_parser('search', help='Search for a card by matching against the name. The most recent card to be released that matches will be returned.', description="Search for a card by name.")
     card_search_parser.add_argument('names', help="The name(s) of the card(s) to search for.", nargs='+', metavar='CARD')
     card_search_parser.add_argument('-f', '--fuzzy', help="Do a fuzzy search instead of exact name match.", action='store_true')

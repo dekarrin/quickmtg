@@ -69,7 +69,7 @@ class HttpAgent(object):
 			ignored_errors: Optional[Sequence[int]]=None,
 			ssl: bool=False,
 			log_full_request: bool=True,
-			log_full_response: bool=True,
+			log_full_response: bool=False,
 			auth_func: Callable[[requests.PreparedRequest], requests.PreparedRequest] = lambda x: x.prepare(),
 			antiflood_secs: float=0
 	):

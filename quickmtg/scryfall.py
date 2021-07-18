@@ -1,7 +1,10 @@
+import html
 import os
 import pickle
 import logging
 from posixpath import join
+import uuid
+from quickmtg.card import Card, Face
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 from . import http
 
@@ -43,10 +46,11 @@ class ScryfallAgent:
 
     def get_card_by_name(self,
             name: str, fuzzy: bool=False, set_code: Optional[str] = None
-    ):
+    ) -> Card:
         """Get details on a card by name. If fuzzy, fuzzy search is applied. If
         set_code is given, it is a three to five-letter set code that the lookup
         will be limited to."""
+
         params = {
             'pretty': self._pretty_response
         }
@@ -59,7 +63,35 @@ class ScryfallAgent:
             params['set'] = set_code
         
         _, resp = self._http.request('GET', '/cards/named', query=params)
-        return resp
+        c = _parse_resp_card(resp)
+        return c
+    
+    def search_cards(self,
+            name: Optional[str], exact: bool=False, set_code: Optional[str]=None
+    ) -> List[Card]:
+        """Search for cards that match the given criterea. Only one result per
+        unique matching functionality is returned unless it is limited to the
+        set.
+        
+        Results will always be sorted as set/collector num, ascending.
+        """
+
+        q = build_search_query(name=name, exact=exact, set=set_code)
+        params = {
+            'pretty': self._pretty_response,
+            'q': q,
+            'unique': 'prints' if set_code is not None else 'cards',
+            'order': 'set',
+            'dir': 'asc',
+        }
+        
+        _, resp = self._http.request('GET', '/cards/search', query=params)
+        results = list()
+        for r in resp:
+            c = _parse_resp_card(r)
+            results.append(c)
+
+        return c
 
     def get_card_image(self, set_code: str, number: int, lang: str=None, size='full', back=False) -> Tuple[bytes, str]:
         """Get image on a card by its collector's number within a set. If
@@ -100,7 +132,7 @@ class ScryfallAgent:
         self._filestore.set(cachepath, resp)
         self._save_cache()
 
-    def get_card_by_num(self, set_code: str, number: int, lang: str=None):
+    def get_card_by_num(self, set_code: str, number: int, lang: str=None) -> Card:
         """Get details on a card by its collector's number within a set. If
         lang is given, card in that language is retrieved instead of the english
         one."""
@@ -110,7 +142,7 @@ class ScryfallAgent:
         cachepath = '/sets/{:s}/cards/{:d}/{:s}'.format(normalized_set(set_code), number, cachelang)
         cached, hit = self._cache.get(cachepath)
         if hit:
-            return cached
+            return Card(**cached)
 
         params = {
             'pretty': self._pretty_response
@@ -118,8 +150,9 @@ class ScryfallAgent:
         lang_url = '/' + lang if lang is not None else ''
         path = '/cards/{:s}/{:s}{:s}'.format(set_code, number, lang_url)
         _, resp = self._http.request('GET', path, query=params)
+        c = _parse_resp_card(resp)
         
-        self._cache.set(cachepath, resp)
+        self._cache.set(cachepath, c.to_dict())
         self._save_cache()
         return resp
         
@@ -318,3 +351,51 @@ def _recurse(leaf_fn: Callable[[str, Any], Any], obj: Union[str, Dict[str, Any]]
     else:
         leaf_fn(cur_path, obj)
     
+
+def _parse_resp_face(f: Dict[str, Any]) -> Face:
+    face = Face(
+        name=f['name'],
+        type=f['type_line'],
+        cost=f['mana_cost'],
+        text=f.get('oracle_text', ''),
+        power=f.get('power', None),
+        toughness=f.get('toughness', None)
+    )
+    return face
+
+
+def _parse_resp_card(resp: Dict[str, Any]) -> Card:
+    c = Card(
+        id=uuid.UUID(resp['id']),
+        set=resp['set'],
+        rarity=resp['rariry'],
+        number=resp['collector_number']
+    )
+
+    # must parse each face
+    layout = resp['layout']
+    if layout in ['split', 'flip', 'transform', 'double_faced_token']:
+        for f in resp['card_faces']:
+            face = _parse_resp_face(f)
+            c.faces.append(face)
+    else:
+        face = _parse_resp_face(resp)
+        c.faces.append(face)
+
+    return c
+
+
+def build_search_query(name: str=None, set: str=None, exact: bool=False):
+    q = ""
+    if name is not None:
+        if exact:
+            name = name.replace('\\', '\\\\').replace('"', '\\"')
+            q += ' !"' + name + '"'
+        else:
+            q += ' ' + name
+
+    if set is not None:
+        q += ' set:' + set
+
+    
+    return q
