@@ -134,14 +134,14 @@ class ScryfallAgent:
         self._filestore.set(cachepath, resp)
         self._save_cache()
 
-    def get_card_by_num(self, set_code: str, number: int, lang: str=None) -> Card:
+    def get_card_by_num(self, set_code: str, number: str, lang: str=None) -> Card:
         """Get details on a card by its collector's number within a set. If
         lang is given, card in that language is retrieved instead of the english
         one."""
 
         # check cache first
         cachelang = lang if lang is not None else 'en'
-        cachepath = '/sets/{:s}/cards/{:d}/{:s}'.format(normalized_set(set_code), number, cachelang)
+        cachepath = '/sets/{:s}/cards/{:s}/{:s}'.format(normalized_set(set_code), number, cachelang)
         cached, hit = self._cache.get(cachepath)
         if hit:
             return Card(**cached)
@@ -370,7 +370,7 @@ def _parse_resp_card(resp: Dict[str, Any]) -> Card:
     c = Card(
         id=uuid.UUID(resp['id']),
         set=resp['set'],
-        rarity=resp['rariry'],
+        rarity=resp['rarity'],
         number=resp['collector_number']
     )
 
