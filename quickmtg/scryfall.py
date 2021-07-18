@@ -75,11 +75,12 @@ class ScryfallAgent:
         cachelang = lang if lang is not None else 'en'
         img_format = 'png' if size.lower() == 'full' else 'jpg'
         frontback = 'back' if back else 'front'
-        cachepath = '/images/set-{0:s}/card-{1:d}/{0:s}-{1:03d}-{2:s}-{3:s}-{4:s}.{5:s}'.format(normalized_set(set_code), number, frontback, size.lower(), cachelang, img_format)
+        cachepath = '/images/set-{0:s}/card-{1:03d}/{0:s}-{1:03d}-{2:s}-{3:s}-{4:s}.{5:s}'.format(normalized_set(set_code), number, frontback, size.lower(), cachelang, img_format)
 
         file_data, exists = self._filestore.get(cachepath)
         if exists:
-           return file_data[0], img_format
+            _log.info('already downloaded file, not downloading again')
+            return file_data[0], img_format
 
         # otherwise, need to make the scryfall call
         lang_url = '/' + lang if lang is not None else ''
@@ -93,9 +94,9 @@ class ScryfallAgent:
         
         status, resp = self._picshttp.request('GET', path, query=params)
         if status == 422:
-            raise ValueError('Card does not have a back face: {:s}:{:d}'.format(normalized_set(set_code), number))
+            raise ValueError('Card does not have a back face: {:s}:{:03d}'.format(normalized_set(set_code), number))
         if status == 404:
-            raise ValueError('Card does not exist in scryfall: {:s}:{:d}'.format(normalized_set(set_code), number))
+            raise ValueError('Card does not exist in scryfall: {:s}:{:03d}'.format(normalized_set(set_code), number))
         self._filestore.set(cachepath, resp)
         self._save_cache()
 
@@ -244,7 +245,7 @@ class _FileCache(_PathCache):
         if path == '':
             start = self._store
         else:
-            comps = list(path.split(os.path.sep))
+            comps = list(path.split('/'))
             cur = self._store
             for p in comps:
                 if p not in cur:
@@ -270,10 +271,7 @@ class _FileCache(_PathCache):
             # it won't be, that's not allowed by super().set(), but double check anyways
             raise ValueError('Path cannot be root or empty')
         
-        print(norm_path)
-        comps = list(reversed(norm_path.split('/')))
-        import pprint
-        pprint.pprint(comps)
+        comps = norm_path.split('/')
         partial_path = self._root
         try:
             for c in comps[:-1]:
