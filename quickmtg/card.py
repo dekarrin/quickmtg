@@ -1,6 +1,6 @@
 from . import color
 from .color import Color
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set, Tuple
 import uuid
 
 
@@ -11,6 +11,9 @@ class Condition:
 
     def __str__(self):
         return self.name
+
+    def __repr__(self):
+        return self.symbol
 
     def __eq__(self, other):
         return self.name == other.name
@@ -60,6 +63,44 @@ class Face:
             if 'power' in kwargs:
                 self.power = kwargs['power']
 
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, Face):
+            return False
+        else:
+            return self._id_tuple() == other._id_tuple()
+
+    def __hash__(self) -> int:
+        return hash(self._id_tuple())
+
+    def __str__(self) -> str:
+        s = 'Face<{!r} cost={!r} type={!r}'.format(self.name, self.cost, self.type)
+        if self.text is None or self.text == '':
+            s += ' text=(none)'
+        else:
+            s += ' text={!r}'.format(self.text)
+        
+        if self.power is not None and self.power != '':
+            s += ' s/t=\"' + self.power + '/'
+            if self.toughness is not None and self.toughness != '':
+                s += self.toughness
+            s += '"'
+
+        return s
+
+    def __repr__(self) -> str:
+        fmt = 'Face(name={!r}, cost={!r}, type={!r}, text={!r}, power={!r}, toughness={!r})'
+        return fmt.format(self.name, self.cost, self.type, self.text, self.power, self.toughness)
+
+    def _id_tuple(self) -> Tuple:
+        return (
+            self.name,
+            self.type,
+            self.cost,
+            self.text,
+            self.toughness,
+            self.power
+        )
+
     @property
     def color_loyalty(self) -> Set[Color]:
         s = color.extract_loyalty(self.cost)
@@ -100,6 +141,36 @@ class Card:
                 self.faces = list(Face(**f) for f in kwargs['faces'])
             if 'number' in kwargs:
                 self.number = kwargs['number']
+    
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, Card):
+            return False
+        else:
+            if self.id != other.id:
+                return False
+            if self.set != other.set:
+                return False
+            if self.rarity != other.rarity:
+                return False
+            if self.number != other.number:
+                return False
+            if len(self.faces) != len(other.faces):
+                return False
+            for f, other_f in zip(self.faces, other.faces):
+                if f != other_f:
+                    return False
+
+            return True
+
+    def __hash__(self) -> int:
+        return hash((self.id, self.set, self.rarity, self.number, frozenset(self.faces)))
+
+    def __str__(self) -> str:
+        return 'Card<{:s}:{:d} {!r}>'.format(self.set, self.number, self.name)
+
+    def __repr__(self) -> str:
+        fmt = 'Card(id={!r}, set={!r}, number={!r}, rarity={!r}, faces={!r})'
+        return fmt.format(self.id, self.set, self.number, self.rarity, self.faces)
 
     @property
     def name(self) -> str:
@@ -197,6 +268,30 @@ class OwnedCard(Card):
                     self.condition = cond_from_symbol(c)
             if 'foil' in kwargs:
                 self.foil = kwargs['foil']
+
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, OwnedCard):
+            return False
+        elif not super().__eq__(other):
+            return False
+        elif self.condition != other.condition:
+            return False
+        elif self.foil != other.foil:
+            return False
+        return True
+
+    def __hash__(self) -> int:
+        return hash((super().__hash__(), self.condition, self.foil))
+
+    def __str__(self) -> str:
+        fstr = ''
+        if self.foil:
+            fstr = ' (FOIL)'
+        return 'OwnedCard<{:s}:{:d} {!r}{:s}>'.format(self.set, self.number, self.name, fstr)
+
+    def __repr__(self) -> str:
+        fmt = 'OwnedCard(id={!r}, set={!r}, number={!r}, rarity={!r}, faces={!r}, condition={!r}, foil={!r})'
+        return fmt.format(self.id, self.set, self.number, self.rarity, self.faces, self.condition, self.foil)
 
     def to_dict(self) -> Dict[str, Any]:
         d = super().to_dict()

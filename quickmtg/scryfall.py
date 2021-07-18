@@ -93,7 +93,7 @@ class ScryfallAgent:
             c = _parse_resp_card(r)
             results.append(c)
 
-        return c
+        return results
 
     def get_card_image(self, set_code: str, number: int, lang: str=None, size='full', back=False) -> Tuple[bytes, str]:
         """Get image on a card by its collector's number within a set. If
@@ -156,7 +156,7 @@ class ScryfallAgent:
         
         self._cache.set(cachepath, c.to_dict())
         self._save_cache()
-        return resp
+        return c
         
     def _save_cache(self):
         try:
