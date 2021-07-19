@@ -106,6 +106,7 @@ def gen_binder_table(cards: Sequence[Dict[str, Any]], rows: int, cols: int, inde
         content += indent(1) + '</tr>\n'
     
     content += indent(0) + '</table>\n'
+    return content
 
 def gen_binder_nav(pageno: int, total_pages: int, indent: Optional[Indenter]=None):
     if indent is None:
@@ -114,9 +115,9 @@ def gen_binder_nav(pageno: int, total_pages: int, indent: Optional[Indenter]=Non
     prev_file = None
     if pageno > 1:
         prev_file = 'binder{:03d}.html'.format(pageno - 1)
-        next_file = None
-        if pageno + 1 < total_pages:
-            next_file = 'binder{:03d}.html'.format(pageno + 1)
+    next_file = None
+    if pageno + 1 < total_pages:
+        next_file = 'binder{:03d}.html'.format(pageno + 1)
 
     content = ''
     content += indent(0) + '<nav class="binder">\n'
