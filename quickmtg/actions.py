@@ -6,6 +6,7 @@ import logging
 import pprint
 import os
 import math
+import sys
 
 _log = logging.getLogger(__name__)
 _log.setLevel(logging.DEBUG)
@@ -59,6 +60,9 @@ def create_view(api: scryfall.ScryfallAgent, list_file: str, output_dir: str):
                 _log.exception("problem reading line {:d}")
                 print("problem reading line {:d} of tappedout list so skipping line: {:s}".format(lineno, str(e)))
 
+    if len(cards) < 1:
+        print("ERROR: No cards were successfully processed!", file=sys.stderr)
+
     # cards are now gotten, generate html:
     # 1. gen the html
     print("(2/4) Generating binder pages...")
@@ -101,5 +105,5 @@ def create_view(api: scryfall.ScryfallAgent, list_file: str, output_dir: str):
     with open(index_path, 'w') as fp:
         fp.write(index_content)
 
-    print("Done! Page is now ready at {!r}".format(os.path.join(output_dir, 'index.html')))
+    print("Done! Page is now ready at {:s}".format(output_dir + 'index.html'))
     

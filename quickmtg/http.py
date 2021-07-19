@@ -35,11 +35,14 @@ def _log_http_request(req, uri, host, auth, full):
 		_log.debug("Body: " + str(req.body))
 
 
-def _log_http_response(resp, full):
+def _log_http_response(resp, full, binary_body=False):
 	_log.debug("Received response: HTTP " + str(resp.status_code))
 	if full:
 		_log.debug("Headers: " + str(resp.headers))
-		_log.debug("Body: " + str(resp.content))
+		if binary_body:
+			_log.debug("Body: (binary data, {:d} bytes)".format(len(resp.content)))
+		else:
+			_log.debug("Body: " + str(resp.content))
 
 
 class AsyncHTTPError(Exception):
@@ -90,7 +93,7 @@ class HttpAgent(object):
 		otherwise stated.
 		:param log_full_request: Whether to log an entire HTTP request (including all headers and body). If False, only
 		the host and method will be logged. If True, the entire response will be logged, including body and headers in
-		plaintext.
+		plaintext, note that this is moot for binary requests, which are never logged.
 		:param log_full_response: Whether to log an entire HTTP response (including all headers and body). If False,
 		only the host and response code will be logged. If True, the entire response will be logged, including body and
 		headers in plaintext.

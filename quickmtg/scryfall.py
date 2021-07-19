@@ -149,6 +149,7 @@ class ScryfallAgent:
             raise ValueError('Card does not exist in scryfall: {:s}:{:03d}'.format(set_code, number))
         self._filestore.set(cachepath, resp)
         self._save_cache()
+        return resp, img_format
 
     def get_card_by_num(self, set_code: str, number: str, lang: str=None) -> Card:
         """Get details on a card by its collector's number within a set. If
