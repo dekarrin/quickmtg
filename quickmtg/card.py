@@ -1,7 +1,65 @@
 from . import color
 from .color import Color
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
 import uuid
+
+class Size:
+    def __init__(self, name: str, api_name: str, w: int, h: int, file_format: str):
+        self.name = name
+        self.api_name = api_name
+        self.format = file_format
+        self.width = w
+        self.height = h
+    
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        return 'Size({!r}, {!r}, {!r}, {!r}, {!r})'.format(
+            self.name,
+            self.api_name,
+            self.w,
+            self.h,
+            self.format
+        )
+
+    def __eq__(self, other):
+        return self.name == other.name
+
+    def __hash__(self):
+        return hash(self.name)
+
+    @property
+    def w(self) -> int:
+        return self.width
+
+    @property
+    def h(self) -> int:
+        return self.height
+
+SizeFull = Size('full', 'png', 745, 1040, 'png')
+SizeLarge = Size('large', 'large', 672, 936, 'jpg')
+SizeNormal = Size('normal', 'normal', 488, 680, 'jpg')
+SizeSmall = Size('large', 'large', 146, 204, 'jpg')
+
+def size_from_str(s: str) -> Size:
+    if s.lower() not in ['full', 'small', 'normal', 'large']:
+        err = "Invalid size for card"
+        err += "; must be one of 'full', 'small', 'normal', or 'large'"
+        err += " but was: {!r}".format(s)
+        raise TypeError(err)
+    
+    if s.lower() == 'full':
+        return SizeFull
+    elif s.lower() == 'large':
+        return SizeLarge
+    elif s.lower() == 'normal':
+        return SizeNormal
+    elif s.lower() == 'small':
+        return SizeSmall
+
+    # should never happen due to prechecks but check anyways
+    raise TypeError("Not a valid size string: {!r}".format(s))
 
 
 class Condition:
@@ -298,3 +356,69 @@ class OwnedCard(Card):
         d['condition'] = self.condition.symbol
         d['foil'] = self.foil
         return d
+
+def image_slug(c: Card, size: Union[Size, str], format: str=None, front: bool=True, lang: str='en') -> str:
+    """Get the file name of a version of the card's image file.
+    
+    :param c: The card whose image to be shown. Must contain at least a set and
+    collector number.
+    :param size: The size of image to link to. Can be one of 'full', 'large',
+    'normal', or 'small'. Not case-sensitive. Can also be a Size object.
+    :param format: The file format for the file. By default, will be determined
+    by the size; 'full' will be 'png' and all others will be 'jpg'. If format is
+    set to a non-None value, this behavior is overriden and the passed-in format
+    is used instead. Not case-sensitive.
+    :param front: Whether the image should be for the front of the card. If set
+    to False and the card does not contain a back face, the generic 'mtg card
+    back' file name is printed.
+    :param lang: The region code of the language of card that should be shown.
+    Not case-sensitive.
+    """
+    if not isinstance(size, Size):
+        size = size_from_str(size)
+
+    if format is not None:
+        if format.lower() not in ['png', 'jpg', 'jpeg']:
+            err = "Invalid format for card image; must be one of 'png' or 'jpg'"
+            err += " but was: {!r}".format(format)
+            raise ValueError(err)
+        format = format.lower()
+        if format == 'jpeg':
+            format = 'jpg'
+    else:
+        format = size.format
+
+    if c.number is None or c.number == '':
+        raise ValueError("Card does not have collector number set")
+    
+    if c.set is None or c.set == '':
+        raise ValueError("Card does not have set code set")
+    
+    # check generic backface
+    face = "front"
+    if not front:
+        if len(c.faces) < 2:
+            # this card doesn't have a back; show generic back face
+            return 'back.{:s}'.format(format)
+        else:
+            face = "back"
+
+    # collector nums are not necessarily padded; pad it if it is an integer
+    cn = c.number
+    try:
+        inum = int(c.number)
+        cn = '{:03d}'.format(inum)
+    except TypeError:
+        pass
+
+
+    # args have been checked now show image
+    s = '{0:s}-{1:s}-{2:s}-{3:s}-{4:s}.{5:s}'
+    return s.format(
+        c.set.upper(),
+        cn,
+        face,
+        size.name,
+        lang,
+        format
+    )

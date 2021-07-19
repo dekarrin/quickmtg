@@ -1,8 +1,11 @@
-from quickmtg.card import OwnedCard
-from . import scryfall, tappedout
+from typing import Any, Dict, Optional
+from quickmtg.card import OwnedCard, SizeSmall, image_slug
+from . import scryfall, tappedout, layout
+from .iterutil import grouper
 import logging
 import pprint
 import os
+import math
 
 _log = logging.getLogger(__name__)
 _log.setLevel(logging.DEBUG)
@@ -54,8 +57,48 @@ def create_view(api: scryfall.ScryfallAgent, list_file: str, output_dir: str):
             except Exception as e:
                 _log.exception("problem reading line {:d}")
                 print("problem reading line {:d} of tappedout list so skipping line: {:s}".format(lineno, str(e)))
-    
-    print("Updated list:")
-    for c in cards:
-        print(tappedout.to_list_line(c['count'], c['card']))
+
+    # cards are now gotten, generate html:
+    # 1. gen the html
+    print("(1/3) Generating binder pages...")
+    rows = 3
+    cols = 3
+    cards_on_page = rows * cols
+    pageno = 0
+    for page in grouper(cards, cards_on_page):
+        pageno += 1
+        content = layout.gen_binder_page(page, pageno, rows, cols)
+        file_name = 'binder{:03d}.html'.format(pageno)
+        file_path = os.path.join(output_dir, file_name)
+
+        with open(file_path, 'w') as fp:
+            fp.write(content)
+
+    # 2. copy the images
+    print("(2/3) Copying image data (this may take awhile)...")
+    assets_path = os.path.join(output_dir, 'assets')
+    try:
+        os.mkdir(assets_path)
+    except FileExistsError:
+        pass  # This is fine
+    images_path = os.path.join(assets_path, 'images')
+    try:
+        os.mkdir(images_path)
+    except FileExistsError:
+        pass  # This is fine
+    for cdata in cards:
+        c = cdata['card']
+        image_data, _ = api.get_card_image(c.set, c.number, size='small')
+        dest_path = os.path.join(images_path, image_slug(c, SizeSmall))
+        with open(dest_path, 'wb') as fp:
+            fp.write(image_data)
+
+    # 3. generate an index page
+    print("(3/3) Generating index pages...")
+    index_content = layout.gen_index_page()
+    index_path = os.path.join(output_dir, 'index.html')
+    with open(index_path, 'w') as fp:
+        fp.write(index_content)
+
+    print("Done! Page is now ready at {!r}".format(os.path.join(output_dir, 'index.html')))
     
