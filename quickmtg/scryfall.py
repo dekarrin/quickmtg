@@ -12,6 +12,54 @@ from . import http
 _log = logging.getLogger(__name__)
 _log.setLevel(logging.DEBUG)
 
+
+class APIError(Exception):
+    """
+    Represents an error returned by the Scryfall API.
+    """
+    def __init__(self, message: str, http_code: int=0, warnings: Sequence[str]=None):
+        if message is None:
+            message = "Scryfall API returned an error"
+
+        if warnings is None:
+            warnings = list()
+
+        super().__init__(message)
+        self.code = http_code
+        self.warnings = warnings
+
+    def is_not_found(self):
+        return self.code == 404
+
+    def is_bad_request(self):
+        return self.code == 404
+
+    def is_invalid_face(self):
+        return self.code == 422
+
+    @staticmethod
+    def parse(resp: Dict[str, Any]) -> 'APIError':
+        if 'object' not in resp:
+            raise KeyError("Cannot parse error response: response does not contain 'object' key")
+        if resp['object'] != 'error':
+            raise TypeError("Cannot parse error response: object type is {!r}, not \"error\"".format(resp['object']))
+
+        try:
+            status = int(resp['status'])
+        except TypeError:
+            raise TypeError("Cannot parse error response: 'status' is not an integer")
+
+        warnings = None
+        if 'warnings' in resp:
+            warnings = list(resp['warnings'])
+
+        details = resp['details']
+
+        return APIError(details, status, warnings)
+
+    
+
+
 class ScryfallAgent:
     """
     Makes calls to scryfall but uses local cache where possible.
@@ -25,8 +73,7 @@ class ScryfallAgent:
             host = host[5:]
         elif host.lower().startswith('https:'):
             host = host[6:]
-        self._http = http.HttpAgent(host, ssl=True, antiflood_secs=0.3)
-        self._picshttp = http.HttpAgent(host, ssl=True, antiflood_secs=0.3, response_payload='binary', ignored_errors=[422, 404])
+        self._http = http.HttpAgent(host, ssl=True, antiflood_secs=0.3, ignored_errors=[400, 401, 403, 404, 422, 500])
         self._pretty_response = pretty
         self._cachefile = cachefile
         self._cache = _PathCache()
@@ -51,7 +98,10 @@ class ScryfallAgent:
     ) -> Card:
         """Get details on a card by name. If fuzzy, fuzzy search is applied. If
         set_code is given, it is a three to five-letter set code that the lookup
-        will be limited to."""
+        will be limited to.
+        
+        Raises APIError if there is an issue with the request.
+        """
 
         set_code = set_code.lower()
 
@@ -66,7 +116,11 @@ class ScryfallAgent:
         if set_code is not None:
             params['set'] = set_code
         
-        _, resp = self._http.request('GET', '/cards/named', query=params)
+        status, resp = self._http.request('GET', '/cards/named', query=params)
+        if status >= 400:
+            err = APIError.parse(resp)
+            raise err
+
         c = _parse_resp_card(resp)
         return c
     
@@ -78,6 +132,8 @@ class ScryfallAgent:
         set.
         
         Results will always be sorted as set/collector num, ascending.
+        
+        Raises APIError if there is an issue with the request.
         """
 
         set_code = set_code.lower()
@@ -90,7 +146,11 @@ class ScryfallAgent:
             'dir': 'asc',
         }
         
-        _, resp = self._http.request('GET', '/cards/search', query=params)
+        status, resp = self._http.request('GET', '/cards/search', query=params)
+        if status >= 400:
+            err = APIError.parse(resp)
+            raise err
+        
         results = list()
 
         if 'data' not in resp:
@@ -142,11 +202,11 @@ class ScryfallAgent:
         if back:
             params['face'] = 'back'
         
-        status, resp = self._picshttp.request('GET', path, query=params)
-        if status == 422:
-            raise ValueError('Card does not have a back face: {:s}:{:03d}'.format(set_code, number))
-        if status == 404:
-            raise ValueError('Card does not exist in scryfall: {:s}:{:03d}'.format(set_code, number))
+        status, resp = self._http.request('GET', path, query=params, response_payload='binary')
+        if status >= 400:
+            err = APIError.parse(resp)
+            raise err
+        
         self._filestore.set(cachepath, resp)
         self._save_cache()
         return resp, img_format
@@ -170,7 +230,11 @@ class ScryfallAgent:
         }
         lang_url = '/' + lang if lang is not None else ''
         path = '/cards/{:s}/{:s}{:s}'.format(set_code, number, lang_url)
-        _, resp = self._http.request('GET', path, query=params)
+        status, resp = self._http.request('GET', path, query=params)
+        if status >= 400:
+            err = APIError.parse(resp)
+            raise err
+        
         c = _parse_resp_card(resp)
         
         self._cache.set(cachepath, c.to_dict())
