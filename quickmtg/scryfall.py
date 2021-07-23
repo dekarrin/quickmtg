@@ -26,7 +26,19 @@ class APIError(Exception):
 
         super().__init__(message)
         self.code = http_code
+        self.message = message
         self.warnings = warnings
+
+    def __str__(self) -> str:
+        s = self.message
+        if len(self.warnings) > 0:
+            warn = '('
+            for w in self.warnings:
+                warn += '{:s}; '.format(w)
+            warn = warn[:-2]
+            warn += ')'
+            s += ' ' + warn
+        return s
 
     def is_not_found(self):
         return self.code == 404

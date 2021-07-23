@@ -57,7 +57,7 @@ def create_view(api: scryfall.ScryfallAgent, list_file: str, output_dir: str):
                     'count': count
                 })
             except scryfall.APIError as e:
-                _log.exception("received API error from scryfall for line {:d}", lineno)
+                _log.exception("received API error from scryfall for line {:d}".format(lineno))
                 raise e
             except Exception as e:
                 _log.exception("problem reading line {:d}", lineno)
