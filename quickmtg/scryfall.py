@@ -50,7 +50,7 @@ class APIError(Exception):
             raise TypeError("Cannot parse error response: 'status' is not an integer")
 
         warnings = None
-        if 'warnings' in resp:
+        if 'warnings' in resp and resp['warnings'] is not None:
             warnings = list(resp['warnings'])
 
         details = resp['details']

@@ -62,6 +62,7 @@ def create_view(api: scryfall.ScryfallAgent, list_file: str, output_dir: str):
             except Exception as e:
                 _log.exception("problem reading line {:d}", lineno)
                 print("problem reading line {:d} of tappedout list so skipping line: {:s}".format(lineno, str(e)))
+                raise e
 
     if len(cards) < 1:
         print("ERROR: No cards were successfully processed!", file=sys.stderr)
