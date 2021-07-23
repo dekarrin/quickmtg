@@ -172,6 +172,8 @@ class ScryfallAgent:
 
         Returns image bytes, and file type as either "jpg" or "png". Calling at
         least once ensures it is created and locally cached for future calls.
+        
+        Raises APIError if there is an issue with the request.
         """
         set_code = set_code.lower()
         cachelang = lang if lang is not None else 'en'
@@ -212,9 +214,13 @@ class ScryfallAgent:
         return resp, img_format
 
     def get_card_by_num(self, set_code: str, number: str, lang: str=None) -> Card:
-        """Get details on a card by its collector's number within a set. If
+        """
+        Get details on a card by its collector's number within a set. If
         lang is given, card in that language is retrieved instead of the english
-        one."""
+        one.
+        
+        Raises APIError if there is an issue with the request.
+        """
 
         set_code = set_code.lower()
 
