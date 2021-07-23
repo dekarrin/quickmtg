@@ -85,7 +85,7 @@ class ScryfallAgent:
             host = host[5:]
         elif host.lower().startswith('https:'):
             host = host[6:]
-        self._http = http.HttpAgent(host, ssl=True, antiflood_secs=0.3, ignored_errors=[400, 401, 403, 404, 422, 500])
+        self._http = http.HttpAgent(host, ssl=True, antiflood_secs=0.3, ignored_errors=[400, 401, 403, 404, 422, 500], log_full_response=False)
         self._pretty_response = pretty
         self._cachefile = cachefile
         self._cache = _PathCache()

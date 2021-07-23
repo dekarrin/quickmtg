@@ -1,11 +1,17 @@
 from typing import Tuple
 from . import card
 from .card import Face, OwnedCard, Card
+import logging
 
 import html
 
+_log = logging.getLogger(__name__)
+_log.setLevel(logging.DEBUG)
+
 def parse_list_line(line: str) -> Tuple[int, OwnedCard]:
     """Parse a line from tapped out board format to owned number and card."""
+    line = line.strip()
+    
     raw_count, rest = line.split(' ', 1)
     count = int(raw_count.strip('x'))
     c = parse_card_line(rest)
@@ -18,6 +24,8 @@ def parse_card_id(line: str) -> Card:
     """
     Return a card that has only name, set, and number set.
     """
+    line = line.strip()
+
     encoded_name, raw_set_id = line.rsplit(' ', 1)
     name = html.unescape(encoded_name)
 
@@ -51,6 +59,8 @@ def to_card_id(c: Card) -> str:
     return fmt.format(c.faces[0].name, c.set.upper(), num)
 
 def parse_card_line(line: str) -> OwnedCard:
+    line = line.strip()
+
     foil = False
     cond = 'mint'
     curline = line
@@ -62,6 +72,7 @@ def parse_card_line(line: str) -> OwnedCard:
             cond = card.cond_from_symbol(end)    
         curline, end = curline.rsplit(' ', 1)
     curline = curline + ' ' + end
+    _log.debug("parsing - {!r}".format(curline))
     crd = parse_card_id(curline)
     c_args = crd.to_dict()
     c = OwnedCard(condition=cond, foil=foil, **c_args)
