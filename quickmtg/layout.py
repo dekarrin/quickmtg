@@ -3,6 +3,8 @@ import math
 from quickmtg.card import SizeSmall, image_slug
 from typing import Any, Callable, Dict, Iterable, Optional, Sequence
 
+"""gen_x functions end in newline, make_x funcs do not"""
+
 class Indenter:
     """
     Does indenting.
@@ -134,7 +136,7 @@ def gen_binder_nav(pageno: int, total_pages: int, indent: Optional[Indenter]=Non
     else:
         content += indent(1) + '<a href="{:s}">&rarr;</a>\n'.format(next_file)
 
-    content += indent(0) + '</nav>'
+    content += indent(0) + '</nav>\n'
     return content
 
 def make_card_cell(card_data: Optional[Dict[str, Any]], indent: Optional[Indenter]=None):
@@ -151,6 +153,6 @@ def make_card_cell(card_data: Optional[Dict[str, Any]], indent: Optional[Indente
         s += '">'
         # TODO: add num owned as overlay in future
         s += '<img src="assets/images/' + image_slug(owned_card, SizeSmall)
-        s += '" width="{:d}" height="{:d}" />'.format(SizeSmall.w, SizeSmall.h)
+        s += '" width="{:d}" height="{:d}" alt="{:s}"/>'.format(SizeSmall.w, SizeSmall.h, owned_card.setnum)
         s += '</td>'
         return s

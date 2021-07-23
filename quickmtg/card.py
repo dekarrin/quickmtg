@@ -231,6 +231,10 @@ class Card:
         return fmt.format(self.id, self.set, self.number, self.rarity, self.faces)
 
     @property
+    def setnum(self) -> str:
+        return '{:s}:{:d}'.format(self.set, self.number)
+
+    @property
     def name(self) -> str:
         if len(self.faces) < 1:
             return ""
