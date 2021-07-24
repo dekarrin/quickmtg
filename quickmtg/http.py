@@ -120,7 +120,7 @@ class HttpAgent(object):
 
 		self._antiflood_wait = lambda: None
 		if antiflood_secs > 0:
-			self._antiflood_timer = timer.PeriodTimer(timedelta(seconds=antiflood_secs))
+			self._antiflood_timer = timer.WaitPeriodTimer(timedelta(seconds=antiflood_secs))
 			self._antiflood_timer.start()
 			self._antiflood_wait = self._antiflood_timer.next
 

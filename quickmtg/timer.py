@@ -1,6 +1,11 @@
 from datetime import timedelta
 import time
 
+import logging
+
+_log = logging.getLogger(__name__)
+_log.setLevel(logging.DEBUG)
+
 class WaitPeriodTimer:
     """Contains methods for coordinating actions that need to have a certain
     amount of time between them at minimum. This class allows a waiting period

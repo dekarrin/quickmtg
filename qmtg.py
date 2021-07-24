@@ -17,6 +17,8 @@ def main():
     # noinspection PyBroadException
     try:
         _parse_cli_and_run()
+    except KeyboardInterrupt:
+        pass
     except Exception:
         _log.exception("Problem during execution")
         sys.exit(1)
