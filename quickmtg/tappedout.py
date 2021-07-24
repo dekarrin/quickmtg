@@ -33,12 +33,7 @@ def parse_card_id(line: str) -> Card:
     raw_set_id = raw_set_id[1:-1]
     num = ''
     if ':' in raw_set_id:
-        set_code, raw_num = raw_set_id.split(':')
-        try:
-            digits = int(raw_num, 10)
-            num = '{:03d}'.format(digits)
-        except TypeError:
-            pass
+        set_code, num = raw_set_id.split(':')
 
     else:
         set_code = raw_set_id

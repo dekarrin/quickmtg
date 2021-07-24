@@ -213,6 +213,9 @@ class Card:
             return
         
         if isinstance(v, str):
+            if v == '':
+                self._num = None
+                return
             try:
                 v = int(v, 10)
             except TypeError:
@@ -429,7 +432,7 @@ def image_slug(c: Card, size: Union[Size, str], format: str=None, front: bool=Tr
             return 'back.{:s}'.format(format)
         else:
             face = "back"
-    
+
     cn = c.number
 
     # args have been checked now show image
