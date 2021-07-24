@@ -204,7 +204,7 @@ class ScryfallAgent:
         except TypeError:
             pass
 
-        cachepath = '/images/set-{0:s}/card-{1:s}/{0:s}-{1:s}-{2:s}-{3:s}-{4:s}.{5:s}'.format(set_code, num_padded, frontback, size.lower(), cachelang, size.format)
+        cachepath = '/images/set-{0:s}/card-{1:s}/{0:s}-{1:s}-{2:s}-{3:s}-{4:s}.{5:s}'.format(set_code, num_padded, frontback, size.name, cachelang, size.format)
 
         file_data, exists = self._filestore.get(cachepath)
         if exists:
