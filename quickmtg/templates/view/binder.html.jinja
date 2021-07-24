@@ -1,0 +1,27 @@
+{% extends "view/_base.html.jinja" %}
+{% import "view/_components.html.jinja" as components %}
+
+{% block title %}Binder Page {{ page_number }}{% endblock %}
+
+{% block header %}
+            <h1>Binder</h1>
+            <h2>Page {{ page_number }}/{{ total_pages }}</h2>
+{% endblock %}
+
+{% block content %}
+    {{ components.binder_nav(page_number, total_pages) }}
+    <table class="binderpage">
+    {% for row in cards %}
+        <tr>
+        {% for cell in row %}
+            {% if none(cell) %}
+            <td class="empty"><img src="assets/images/back.png" alt="a blank slot" /></td>
+            {% else %}
+            <td class="filled{{ " foil" if cell['card'].foil else "" }}"><img src="assets/images/{{ cell['card'] | cardfile }}" width="{{ 'small'|sizew }}" height="{{ 'small'|sizeh }}" alt="{{ cell['card'].setnum }}" /></td>
+            {% endif %}
+        {% endfor %}
+        </tr>
+    {% endfor %}
+    </table>
+    {{ components.binder_nav(page_number, total_pages) }}
+{% endblock %}

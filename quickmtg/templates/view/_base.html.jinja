@@ -6,7 +6,9 @@
     </head>
     <body>
         <header>
-            <h1>{% block header %}Binder Page{% endblock %}</h1>
+        {% block header %}
+            <h1>Binder Page</h1>
+        {% endblock %}
         </header>
         <main>
         {% block content %}

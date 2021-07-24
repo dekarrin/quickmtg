@@ -1,6 +1,11 @@
 {% extends "view/_base.html.jinja" %}
+
 {% block title %}Binder Index{% endblock %}
-{% block header %}"{{ binder_name|title|e }}" Binder Index{% endblock %}
+
+{% block header %}
+            <h1>"{{ binder_name|title|e }}" Binder Index</h1>
+{% endblock %}
+
 {% block content %}
             <ol>
                 <li><a href="binder001.html">First Page</a></li>
