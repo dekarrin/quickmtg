@@ -222,6 +222,7 @@ class Card:
     def number(self, v: Union[str, int]):
         if v is None:
             self._num = v
+            return
         
         if isinstance(v, int):
             v = str(v)

@@ -111,5 +111,5 @@ def create_view(api: scryfall.ScryfallAgent, list_file: str, output_dir: str):
     with open(index_path, 'w') as fp:
         fp.write(index_content)
 
-    print("Done! Page is now ready at {:s}".format(output_dir + 'index.html'))
+    print("Done! Page is now ready at {:s}".format(output_dir + '/index.html'))
     

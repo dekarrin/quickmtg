@@ -146,6 +146,10 @@ class ScryfallAgent:
         Results will always be sorted as set/collector num, ascending.
         
         Raises APIError if there is an issue with the request.
+
+        Due to search results changing frequently based on the state of all
+        currently released cards, this function is never cacheable, so it should
+        only be called directly when necessary.
         """
 
         set_code = set_code.lower()
@@ -209,8 +213,9 @@ class ScryfallAgent:
 
         file_data, exists = self._filestore.get(cachepath)
         if exists:
-            _log.info('already downloaded file, not downloading again')
             return file_data[0]
+        
+        _log.debug('Image cache miss for {:s}; retrieving from scryfall...'.format(cachepath))
 
         # otherwise, need to make the scryfall call
         lang_url = '/' + lang if lang is not None else ''
@@ -249,6 +254,8 @@ class ScryfallAgent:
         if hit:
             return Card(**cached)
 
+        _log.debug('Data cache miss for {:s}; retrieving from scryfall...'.format(cachepath))
+
         params = {
             'pretty': self._pretty_response
         }
@@ -264,6 +271,34 @@ class ScryfallAgent:
         self._cache.set(cachepath, c.to_dict())
         self._save_cache()
         return c
+    
+    def get_card_default_num(self, name: str, set_code: str) -> str:
+        """
+        Gets the default number for a card in a set when none is given. For
+        example, get_default_num("Alpine Watchdog", "M21") gives the number that
+        should be assumed for a card called 'Alpine Watchdog' in the set Core
+        2021 for when it does not specify a particular number.
+
+        This function caches results. If the default number cannot be found in
+        the cache, the search API is used to find it. It is then stored in the
+        cache for future calls.
+        """
+        set_code = set_code.lower()
+
+        cachename = name.lower().replace(' ', '_')
+        cachepath = '/sets/{:s}/defaults/{:s}'.format(set_code, cachename)
+        cached, hit = self._cache.get(cachepath)
+        if hit:
+            return cached
+            
+        _log.debug('Data cache miss for {:s}; retrieving from scryfall...'.format(cachepath))
+
+
+        candidates = self.search_cards(name, exact=True, set_code=set_code)
+        num = candidates[0].number
+        self._cache.set(cachepath, num)
+        self._save_cache()
+        return num
         
     def _save_cache(self):
         try:
