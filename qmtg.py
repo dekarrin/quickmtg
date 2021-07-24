@@ -23,7 +23,7 @@ def main():
     sys.exit(0)
 
 def _parse_cli_and_run():
-    api = scryfall.ScryfallAgent('api.scryfall.com', pretty=True)
+    api = scryfall.ScryfallAgent('api.scryfall.com', pretty=False)
     
     parser = argparse.ArgumentParser(description="MTG library organizer")
 

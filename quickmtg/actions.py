@@ -39,6 +39,8 @@ def create_view(api: scryfall.ScryfallAgent, list_file: str, output_dir: str):
         lineno = 0
         for line in fp:
             lineno += 1
+            if line.strip() == '':
+                continue
             try:
                 count, c = tappedout.parse_list_line(line)
 
