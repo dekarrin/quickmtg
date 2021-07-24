@@ -150,6 +150,7 @@ class ScryfallAgent:
 
         set_code = set_code.lower()
         q = build_search_query(name=name, exact=exact, set=set_code)
+        _log.debug("search query: {!r}".format(q))
         params = {
             'pretty': self._pretty_response,
             'q': q,

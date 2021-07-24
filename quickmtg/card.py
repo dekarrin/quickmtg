@@ -201,6 +201,18 @@ class Card:
                 self.number = kwargs['number']
 
     @property
+    def pretty_num(self) -> str:
+        if self.number == '':
+            return ''
+        try:
+            i = int(self.number, 10)
+            return '{:03d}'.format(i)
+        except TypeError:
+            pass
+
+        return self.number
+
+    @property
     def number(self) -> str:
         if self._num is None:
             return ''
@@ -209,22 +221,16 @@ class Card:
     @number.setter
     def number(self, v: Union[str, int]):
         if v is None:
-            self._num = None
-            return
-        
-        if isinstance(v, str):
-            if v == '':
-                self._num = None
-                return
-            try:
-                v = int(v, 10)
-            except TypeError:
-                pass
+            self._num = v
         
         if isinstance(v, int):
-            self._num = '{:03d}'.format(v)
-        else:
-            self._num = v
+            v = str(v)
+
+        # chop off leading 0's
+        while v.startswith('0'):
+            v = v[1:]
+        
+        self._num = v
     
     def __eq__(self, other) -> bool:
         if not isinstance(other, Card):
@@ -258,7 +264,7 @@ class Card:
 
     @property
     def setnum(self) -> str:
-        return '{:s}:{:s}'.format(self.set, self.number)
+        return '{:s}:{:s}'.format(self.set, self.pretty_num)
 
     @property
     def name(self) -> str:
