@@ -199,7 +199,7 @@ class ScryfallAgent:
 
         num_padded = number
         try:
-            only_int = int(number)
+            only_int = int(number, 10)
             num_padded = '{:03d}'.format(only_int)
         except TypeError:
             pass

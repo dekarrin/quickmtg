@@ -11,7 +11,7 @@ _log.setLevel(logging.DEBUG)
 def parse_list_line(line: str) -> Tuple[int, OwnedCard]:
     """Parse a line from tapped out board format to owned number and card."""
     line = line.strip()
-    
+
     raw_count, rest = line.split(' ', 1)
     count = int(raw_count.strip('x'))
     c = parse_card_line(rest)
@@ -35,7 +35,7 @@ def parse_card_id(line: str) -> Card:
     if ':' in raw_set_id:
         set_code, raw_num = raw_set_id.split(':')
         try:
-            digits = int(raw_num)
+            digits = int(raw_num, 10)
             num = '{:03d}'.format(digits)
         except TypeError:
             pass
@@ -48,15 +48,8 @@ def parse_card_id(line: str) -> Card:
     return c
 
 def to_card_id(c: Card) -> str:
-    num = c.number
-    try:
-        num_int = int(num)
-        num = '{:03d}'.format(num_int)
-    except TypeError:
-        pass
-
-    fmt = '{:s} ({:s}:{:s})'
-    return fmt.format(c.faces[0].name, c.set.upper(), num)
+    fmt = '{:s} ({:s})'
+    return fmt.format(c.faces[0].name, c.setnum.upper())
 
 def parse_card_line(line: str) -> OwnedCard:
     line = line.strip()
