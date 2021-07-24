@@ -60,7 +60,6 @@ def parse_card_line(line: str) -> OwnedCard:
             cond = card.cond_from_symbol(end)    
         curline, end = curline.rsplit(' ', 1)
     curline = curline + ' ' + end
-    _log.debug("parsing - {!r}".format(curline))
     crd = parse_card_id(curline)
     c_args = crd.to_dict()
     c = OwnedCard(condition=cond, foil=foil, **c_args)
