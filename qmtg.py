@@ -140,7 +140,7 @@ class _ExactLevelFilter(object):
 
 
 def _setup_console_logger():
-    file_handler = logging.handlers.RotatingFileHandler('qmtg.log', maxBytes=5*1024*1024, backupCount=5)
+    file_handler = logging.handlers.RotatingFileHandler('qmtg.log', maxBytes=25*1024*1024, backupCount=5)
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(logging.Formatter("[%(asctime)s] %(levelname)s: %(message)s"))
     logging.getLogger().addHandler(file_handler)
