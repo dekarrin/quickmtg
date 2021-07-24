@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en" >
+    <head>
+        <meta charset="UTF-8" />
+        <title>{% block title %}QuickMTG{% endblock %}</title>
+    </head>
+    <body>
+        <header>
+            <h1>{% block header %}Binder Page{% endblock %}</h1>
+        </header>
+        <main>
+        {% block content %}
+            <p>Default Binder Contents</p>
+        {% endblock %}
+        </main>
+    </body>
+</html>

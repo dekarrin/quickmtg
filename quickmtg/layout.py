@@ -1,7 +1,17 @@
 
 import math
+
+from jinja2.utils import select_autoescape
 from quickmtg.card import SizeSmall, image_slug
 from typing import Any, Callable, Dict, Iterable, Optional, Sequence
+import jinja2
+
+_jinja_env = jinja2.Environment(
+    loader=jinja2.PackageLoader("quickmtg"),
+    autoescape=select_autoescape(),
+    trim_blocks=True,
+    lstrip_blocks=True
+)
 
 """gen_x functions end in newline, make_x funcs do not"""
 
@@ -44,23 +54,12 @@ class Indenter:
     def __str__(self) -> str:
         return self.make()
 
-def gen_index_page(indent: Optional[Indenter]=None):
+def gen_index_page(indent: Optional[Indenter]=None) -> str:
     if indent is None:
         indent = Indenter()
 
-    content = ''
-    content += indent(0) + '<!DOCTYPE html>\n'
-    content += indent(0) + '<html>\n'
-    content += indent(1) + '<head>\n'
-    content += indent(2) + '<title>Index</title>\n'
-    content += indent(1) + '</head>\n'
-    content += indent(1) + '<body>\n'
-    content += indent(2) + '<h1>Binder Index</h1>\n'
-    content += indent(2) + '<a href="binder001.html">First Page</a>\n'
-    content += indent(1) + '</body>\n'
-    content += indent(0) + '</html>\n'
-
-    return content
+    template = _jinja_env.get_template('view/index.html.jinja')
+    return template.render(binder_name="default")
 
 
 def gen_binder_page(cards: Sequence[Dict[str, Any]], pageno: int, rows: int, cols: int, indent: Optional[Indenter]=None):

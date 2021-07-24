@@ -186,7 +186,7 @@ class Card:
         self.set: str = ''
         self.rarity: str = ''
         self.faces: List[Face] = list()
-        self.number: str = 0
+        self.number = None
 
         if kwargs is not None:
             if 'id' in kwargs:
@@ -199,6 +199,29 @@ class Card:
                 self.faces = list((f if isinstance(f, Face) else Face(**f)) for f in kwargs['faces'])
             if 'number' in kwargs:
                 self.number = kwargs['number']
+
+    @property
+    def number(self) -> str:
+        if self._num is None:
+            return ''
+        return self._num
+
+    @number.setter
+    def number(self, v: Union[str, int]):
+        if v is None:
+            self._num = None
+            return
+        
+        if isinstance(v, str):
+            try:
+                v = int(v, 10)
+            except TypeError:
+                pass
+        
+        if isinstance(v, int):
+            self._num = '{:03d}'.format(v)
+        else:
+            self._num = v
     
     def __eq__(self, other) -> bool:
         if not isinstance(other, Card):
@@ -224,7 +247,7 @@ class Card:
         return hash((self.id, self.set, self.rarity, self.number, frozenset(self.faces)))
 
     def __str__(self) -> str:
-        return 'Card<{:s}:{:s} {!r}>'.format(self.set, self.number, self.name)
+        return 'Card<{:s} {!r}>'.format(self.setnum, self.name)
 
     def __repr__(self) -> str:
         fmt = 'Card(id={!r}, set={!r}, number={!r}, rarity={!r}, faces={!r})'
@@ -232,7 +255,7 @@ class Card:
 
     @property
     def setnum(self) -> str:
-        return '{:s}:{:d}'.format(self.set, self.number)
+        return '{:s}:{:s}'.format(self.set, self.number)
 
     @property
     def name(self) -> str:
@@ -349,7 +372,7 @@ class OwnedCard(Card):
         fstr = ''
         if self.foil:
             fstr = ' (FOIL)'
-        return 'OwnedCard<{:s}:{:s} {!r}{:s}>'.format(self.set, self.number, self.name, fstr)
+        return 'OwnedCard<{:s} {!r}{:s}>'.format(self.setnum, self.name, fstr)
 
     def __repr__(self) -> str:
         fmt = 'OwnedCard(id={!r}, set={!r}, number={!r}, rarity={!r}, faces={!r}, condition={!r}, foil={!r})'
@@ -406,15 +429,8 @@ def image_slug(c: Card, size: Union[Size, str], format: str=None, front: bool=Tr
             return 'back.{:s}'.format(format)
         else:
             face = "back"
-
-    # collector nums are not necessarily padded; pad it if it is an integer
+    
     cn = c.number
-    try:
-        inum = int(c.number)
-        cn = '{:03d}'.format(inum)
-    except TypeError:
-        pass
-
 
     # args have been checked now show image
     s = '{0:s}-{1:s}-{2:s}-{3:s}-{4:s}.{5:s}'
