@@ -9,19 +9,19 @@
 {% endblock %}
 
 {% block content %}
-    {{ components.binder_nav(page_number, total_pages) }}
-    <table class="binderpage">
-    {% for row in cards %}
-        <tr>
-        {% for cell in row %}
-            {% if cell is none %}
-            <td class="empty"><img src="assets/images/back.png" alt="a blank slot" /></td>
-            {% else %}
-            <td class="filled{{ " foil" if cell['card'].foil else "" }}"><img src="assets/images/{{ cell['card'] | cardfile }}" width="{{ 'small'|sizew }}" height="{{ 'small'|sizeh }}" alt="{{ cell['card'].setnum }}" /></td>
-            {% endif %}
-        {% endfor %}
-        </tr>
-    {% endfor %}
-    </table>
-    {{ components.binder_nav(page_number, total_pages) }}
+            {{ components.binder_nav(page_number, total_pages)|indent(12) }}
+            <table class="binderpage">
+            {% for row in cards %}
+                <tr>
+                {% for cell in row %}
+                    {% if cell is none %}
+                    <td class="empty"><img src="assets/images/back.png" alt="a blank slot" /></td>
+                    {% else %}
+                    <td class="filled{{ " foil" if cell['card'].foil else "" }}"><img src="assets/images/{{ cell['card'] | cardfile }}" width="{{ 'small'|sizew }}" height="{{ 'small'|sizeh }}" alt="{{ cell['card'].setnum }}" /></td>
+                    {% endif %}
+                {% endfor %}
+                </tr>
+            {% endfor %}
+            </table>
+            {{ components.binder_nav(page_number, total_pages)|indent(12) }}
 {% endblock %}

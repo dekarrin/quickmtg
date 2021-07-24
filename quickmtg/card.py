@@ -440,13 +440,11 @@ def image_slug(c: Card, size: Union[Size, str], format: str=None, front: bool=Tr
         else:
             face = "back"
 
-    cn = c.number
-
     # args have been checked now show image
     s = '{0:s}-{1:s}-{2:s}-{3:s}-{4:s}.{5:s}'
     return s.format(
         c.set.upper(),
-        cn,
+        c.pretty_num,
         face,
         size.name,
         lang,
