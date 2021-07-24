@@ -42,12 +42,9 @@ def create_view(api: scryfall.ScryfallAgent, list_file: str, output_dir: str):
             try:
                 count, c = tappedout.parse_list_line(line)
 
-                _log.debug("GOT: {!r}".format(c))
-
                 if c.number == '':
                     # need to get the number
-                    candidates = api.search_cards(name=c.name, exact=True, set_code=c.set)
-                    c.number = candidates[0].number
+                    c.number = api.get_card_default_num(c.name, c.set)
 
                 full_data = api.get_card_by_num(c.set, c.number).to_dict()                
                 owned = OwnedCard(**full_data)

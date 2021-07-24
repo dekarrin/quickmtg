@@ -293,7 +293,6 @@ class ScryfallAgent:
             
         _log.debug('Data cache miss for {:s}; retrieving from scryfall...'.format(cachepath))
 
-
         candidates = self.search_cards(name, exact=True, set_code=set_code)
         num = candidates[0].number
         self._cache.set(cachepath, num)
@@ -478,8 +477,14 @@ class _FileCache(_PathCache):
         filepath = meta['filepath']
         size = meta['size']
 
-        with open(filepath, 'rb') as fp:
-            data = fp.read(size)
+        try:
+            with open(filepath, 'rb') as fp:
+                data = fp.read(size)
+        except FileNotFoundError:
+            # remove from cache; file has been tampered with and there is no
+            # point in keeping it in
+            super().clear(path)
+            return None, False
         
         return (data, meta), True
 
