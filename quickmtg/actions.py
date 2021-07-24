@@ -101,6 +101,11 @@ def create_view(api: scryfall.ScryfallAgent, list_file: str, output_dir: str):
             fp.write(image_data_small)
         with open(dest_path_full, 'wb') as fp:
             fp.write(image_data_full)
+    # get back image
+    image_data_back, back_fmt = api.get_card_back_image()
+    dest_path_back = os.path.join(images_path, 'back.{:s}'.format(back_fmt))
+    with open(dest_path_back, 'wb') as fp:
+        fp.write(image_data_back)
 
     # generate an index page
     _log.info("(4/4) Generating index pages...")

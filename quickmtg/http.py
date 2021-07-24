@@ -486,3 +486,22 @@ class HttpAgent(object):
 		else:
 			prepared = req.prepare()
 		return prepared
+
+def download(url: str) -> bytes:
+	"""
+	Download a file from the internet using a GET request. If it fails for any
+	reason, an exception is raised. For more complicated behavior, use an
+	HttpAgent object.
+
+	Returns the bytes of the downloaded object.
+	"""
+	resp = requests.get(url, stream=True)
+
+	if not resp.ok:
+		raise ValueError("problem with download: {:s}".format(str(resp)))
+
+	all_data = b''
+	for block in resp.iter_content(1024):
+		all_data += block
+	
+	return all_data

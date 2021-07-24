@@ -1,12 +1,13 @@
-import html
 import os
 import pickle
 import logging
-from posixpath import join
 import uuid
 from quickmtg.card import Card, Face
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 from . import http, card
+
+
+_BACK_IMAGE_URI = 'https://c2.scryfall.com/file/scryfall-errors/missing.jpg'
 
 
 _log = logging.getLogger(__name__)
@@ -135,6 +136,31 @@ class ScryfallAgent:
 
         c = _parse_resp_card(resp)
         return c
+
+    def get_card_back_image(self) -> Tuple[bytes, str]:
+        """
+        Get the back image for a card, from cache or from the defined URI if cache
+        is not present.
+
+        Returns a tuple of the image bytes and the format extension, such as
+        'png', 'jpg', etc.
+        """
+        fmt = _BACK_IMAGE_URI.rsplit('.', 1)[1]
+
+        cachepath = '/images/misc/back.' + fmt
+        data, hit = self._filestore.get(cachepath)
+        if hit:
+            return data[0], fmt
+
+        _log.debug('Image cache miss for {:s}; retrieving from scryfall...'.format(cachepath))
+
+        image_data = http.download(_BACK_IMAGE_URI)
+
+        self._filestore.set(cachepath, image_data)
+        self._save_cache()
+
+        return image_data, fmt
+
     
     def search_cards(self,
             name: Optional[str], exact: bool=False, set_code: Optional[str]=None
