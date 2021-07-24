@@ -1,5 +1,5 @@
 from typing import Any, Dict, Optional
-from quickmtg.card import OwnedCard, SizeSmall, image_slug
+from quickmtg.card import OwnedCard, SizeFull, SizeSmall, image_slug
 from . import scryfall, tappedout, layout
 from .iterutil import grouper
 import logging
@@ -17,15 +17,15 @@ def search_cards(api: scryfall.ScryfallAgent, fuzzy: bool=False, set: str=None, 
 
     for card in cards:
         repl = api.get_card_by_name(card, fuzzy=fuzzy, set_code=set)
-        pprint.pprint(repl)
+        _log.info(pprint.pprint(repl))
     
 def show_card(api: scryfall.ScryfallAgent, set: str, num: str, lang: str):
     repl = api.get_card_by_num(set, num, lang)
-    pprint.pprint(repl)
+    _log.info(pprint.pformat(repl))
     
 def get_card_image(api: scryfall.ScryfallAgent, set: str, num: str, lang: str, size: str, back: bool):
     api.get_card_image(set, num, lang, size, back)
-    print("card downloaded; check ./.scryfall directory")
+    _log.info("card downloaded; check ./.scryfall directory")
 
 def create_view(api: scryfall.ScryfallAgent, list_file: str, output_dir: str):
     try:
@@ -33,7 +33,7 @@ def create_view(api: scryfall.ScryfallAgent, list_file: str, output_dir: str):
     except FileExistsError:
         pass  # This is fine
 
-    print("(1/4) Reading card data from inventory list and scryfall...")
+    _log.info("(1/4) Reading card data from inventory list and scryfall...")
     cards = list()
     with open(list_file, 'r') as fp:
         lineno = 0
@@ -93,10 +93,14 @@ def create_view(api: scryfall.ScryfallAgent, list_file: str, output_dir: str):
         pass  # This is fine
     for cdata in cards:
         c = cdata['card']
-        image_data, _ = api.get_card_image(c.set, c.number, size='small')
-        dest_path = os.path.join(images_path, image_slug(c, SizeSmall))
-        with open(dest_path, 'wb') as fp:
-            fp.write(image_data)
+        image_data_small = api.get_card_image(c.set, c.number, size=SizeSmall)
+        dest_path_small = os.path.join(images_path, image_slug(c, SizeSmall))
+        image_data_full = api.get_card_image(c.set, c.number, size=SizeFull)
+        dest_path_full = os.path.join(images_path, image_slug(c, SizeFull))
+        with open(dest_path_small, 'wb') as fp:
+            fp.write(image_data_small)
+        with open(dest_path_full, 'wb') as fp:
+            fp.write(image_data_full)
 
     # 3. generate an index page
     print("(4/4) Generating index pages...")

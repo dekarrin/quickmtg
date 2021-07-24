@@ -6,7 +6,7 @@ from posixpath import join
 import uuid
 from quickmtg.card import Card, Face
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
-from . import http
+from . import http, card
 
 
 _log = logging.getLogger(__name__)
@@ -174,22 +174,27 @@ class ScryfallAgent:
 
         return results
 
-    def get_card_image(self, set_code: str, number: str, lang: str=None, size='full', back=False) -> Tuple[bytes, str]:
-        """Get image on a card by its collector's number within a set. If
-        lang is given, card in that language is retrieved instead of the english
-        one.
+    def get_card_image(
+        self,
+        set_code: str, number: str, lang: str=None,
+        size: card.Size=card.SizeFull, back: bool=False
+    ) -> bytes:
+        """Get image on a card by its collector's number within a set. If lang
+        is given, card in that language is retrieved instead of the english one.
         
-        Size can be specified. It can be either 'full', 'small', 'normal', or
-        'large', and defaults to full.
+        Size can be specified. It can be either SizeFull, SizeSmall, SizeNormal,
+        or SizeLarge, and defaults to SizeFull.
 
-        Returns image bytes, and file type as either "jpg" or "png". Calling at
+        Returns image bytes in the format specified by the size. Calling at
         least once ensures it is created and locally cached for future calls.
         
         Raises APIError if there is an issue with the request.
         """
+        if isinstance(size, str):
+            size = card.size_from_str(size)
+        
         set_code = set_code.lower()
         cachelang = lang if lang is not None else 'en'
-        img_format = 'png' if size.lower() == 'full' else 'jpg'
         frontback = 'back' if back else 'front'
 
         num_padded = number
@@ -199,18 +204,18 @@ class ScryfallAgent:
         except TypeError:
             pass
 
-        cachepath = '/images/set-{0:s}/card-{1:s}/{0:s}-{1:s}-{2:s}-{3:s}-{4:s}.{5:s}'.format(set_code, num_padded, frontback, size.lower(), cachelang, img_format)
+        cachepath = '/images/set-{0:s}/card-{1:s}/{0:s}-{1:s}-{2:s}-{3:s}-{4:s}.{5:s}'.format(set_code, num_padded, frontback, size.lower(), cachelang, size.format)
 
         file_data, exists = self._filestore.get(cachepath)
         if exists:
             _log.info('already downloaded file, not downloading again')
-            return file_data[0], img_format
+            return file_data[0]
 
         # otherwise, need to make the scryfall call
         lang_url = '/' + lang if lang is not None else ''
         path = '/cards/{:s}/{:s}{:s}'.format(set_code, number, lang_url)
         params = {
-            'version': 'png' if size.lower() == 'full' else size.lower(),
+            'version': size.api_name,
             'format': 'image'
         }
         if back:
@@ -223,8 +228,8 @@ class ScryfallAgent:
         
         self._filestore.set(cachepath, resp)
         self._save_cache()
-        return resp, img_format
-
+        return resp
+    
     def get_card_by_num(self, set_code: str, number: str, lang: str=None) -> Card:
         """
         Get details on a card by its collector's number within a set. If
