@@ -35,7 +35,7 @@ def progress(current, target):
         # not iterable, cant get a length
         pass
 
-    return '{:.3f}% done...'.format((current / target) * 100)
+    return '  {:.0f}% done...'.format((current / target) * 100)
 
 def once_every(period: datetime.timedelta, fn: Callable[[], T]) -> Callable[[], Optional[T]]:
     """
