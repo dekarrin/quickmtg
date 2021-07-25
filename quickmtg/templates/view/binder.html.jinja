@@ -13,8 +13,10 @@
 {% endblock %}
 
 {% block content %}
-                {{ components.infobox_dialog("cardinfo-modal") | indent(16) }}
-                {{ components.binder_nav(page_number, total_pages)|indent(16) }}
+                <div>
+                    {{ components.infobox_dialog("cardinfo-modal") | indent(4*5) }}
+                </div>
+                {{ components.binder_nav(page_number, total_pages)|indent(4*4) }}
                 <table class="binderpage">
                 {% for row in cards %}
                     <tr>
@@ -23,7 +25,7 @@
                         <td class="empty"><img src="assets/images/back.jpg" alt="a blank slot" width="{{ 'small'|sizew }}" height="{{ 'small'|sizeh }}" /></td>
                         {% else %}
                         <td class="filled{{ " foil" if card.foil else "" }}">
-                            <a class="card" href="javascript:void();" title="{{ card.name }}" data-name="{{ card.name }}" data-owned="{{ card.count }}" data-foil="{{ card.foil }}" data-cond="{{ card.condition }}" data-img="{{ card | cardfile('large') }}">
+                            <a class="card" href="javascript:void(0);" title="{{ card.name }}" data-name="{{ card.name }}" data-owned="{{ card.count }}" data-foil="{{ card.foil }}" data-cond="{{ card.condition }}" data-img="{{ card | cardfile('large') }}">
                                 <img src="assets/images/{{ card | cardfile }}" width="{{ 'small'|sizew }}" height="{{ 'small'|sizeh }}" alt="{{ card.setnum }}" />
                                 {% if card.count > 1 %}
                                 <img class="multiowned" src="assets/images/{{ card | cardfile }}" width="{{ 'small'|sizew }}" height="{{ 'small'|sizeh }}" alt="{{ card.setnum }}" />
@@ -35,5 +37,5 @@
                     </tr>
                 {% endfor %}
                 </table>
-                {{ components.binder_nav(page_number, total_pages)|indent(16) }}
+                {{ components.binder_nav(page_number, total_pages)|indent(4*4) }}
 {% endblock %}
