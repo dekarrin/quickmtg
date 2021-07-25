@@ -6,15 +6,17 @@
         <title>{% block title %}QuickMTG{% endblock %}</title>
     </head>
     <body>
-        <header>
-        {% block header %}
-            <h1>Binder Page</h1>
-        {% endblock %}
-        </header>
-        <main>
-        {% block content %}
-            <p>Default Binder Contents</p>
-        {% endblock %}
-        </main>
+        <div id="wrap">
+            <header>
+            {% block header %}
+                <h1>Binder Page</h1>
+            {% endblock %}
+            </header>
+            <main>
+            {% block content %}
+                <p>Default Binder Contents</p>
+            {% endblock %}
+            </main>
+        </div>
     </body>
 </html>

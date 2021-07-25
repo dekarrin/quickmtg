@@ -4,24 +4,24 @@
 {% block title %}Binder Page {{ page_number }}{% endblock %}
 
 {% block header %}
-            <h1>Binder</h1>
-            <h2>Page {{ page_number }}/{{ total_pages }}</h2>
+                <h1>Binder</h1>
+                <h3>Page {{ page_number }}/{{ total_pages }}</h3>
 {% endblock %}
 
 {% block content %}
-            {{ components.binder_nav(page_number, total_pages)|indent(12) }}
-            <table class="binderpage">
-            {% for row in cards %}
-                <tr>
-                {% for card in row %}
-                    {% if card is none %}
-                    <td class="empty"><img src="assets/images/back.jpg" alt="a blank slot" width="{{ 'small'|sizew }}" height="{{ 'small'|sizeh }}" /></td>
-                    {% else %}
-                    <td class="filled{{ " foil" if card.foil else "" }}"><img src="assets/images/{{ card | cardfile }}" width="{{ 'small'|sizew }}" height="{{ 'small'|sizeh }}" alt="{{ card.setnum }}" /></td>
-                    {% endif %}
+                {{ components.binder_nav(page_number, total_pages)|indent(16) }}
+                <table class="binderpage">
+                {% for row in cards %}
+                    <tr>
+                    {% for card in row %}
+                        {% if card is none %}
+                        <td class="empty"><img src="assets/images/back.jpg" alt="a blank slot" width="{{ 'small'|sizew }}" height="{{ 'small'|sizeh }}" /></td>
+                        {% else %}
+                        <td class="filled{{ " foil" if card.foil else "" }}"><img src="assets/images/{{ card | cardfile }}" width="{{ 'small'|sizew }}" height="{{ 'small'|sizeh }}" alt="{{ card.setnum }}" /></td>
+                        {% endif %}
+                    {% endfor %}
+                    </tr>
                 {% endfor %}
-                </tr>
-            {% endfor %}
-            </table>
-            {{ components.binder_nav(page_number, total_pages)|indent(12) }}
+                </table>
+                {{ components.binder_nav(page_number, total_pages)|indent(16) }}
 {% endblock %}
