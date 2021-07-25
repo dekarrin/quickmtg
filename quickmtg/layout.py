@@ -17,12 +17,9 @@ _jinja_env.filters['cardfile'] = filters.get_image_slug
 _jinja_env.filters['sizeh'] = filters.size_height
 _jinja_env.filters['sizew'] = filters.size_width
 
-"""gen_x functions end in newline, make_x funcs do not"""
-
 def gen_stylesheet() -> str:
     template = _jinja_env.get_template('_static/styles.css')
     return template.render()
-
 
 def gen_index_page() -> str:
     template = _jinja_env.get_template('view/index.html.jinja')
