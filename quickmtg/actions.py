@@ -154,9 +154,16 @@ def create_view(store: cache.AutoSaveStore, api: scryfall.ScryfallAgent, list_fi
     json_dest = os.path.join(output_dir, 'binder.json')
     with open(json_dest, 'w') as fp:
         json.dump(binder_data, fp, indent=4)
-    store.set('binders/' + id_name, binder_data)
-
-
-
+    store.batch()
+    store.set('/binders/' + id_name, binder_data)
+    binders_meta, exists = store.get('/binders/.meta')
+    if not exists:
+        binders_meta = {
+            'ids': list()
+        }
+    binders_meta['ids'].append(id_name)
+    store.set('/binders/.meta', binders_meta)
+    store.commit()
+    
     _log.info("Done! Page is now ready at {:s}".format(output_dir + '/index.html'))
     

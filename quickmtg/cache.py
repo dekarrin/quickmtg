@@ -220,7 +220,7 @@ class AutoSaveStore:
         """
         try:
             with open(self.path, 'wb') as fp:
-                pickle.dump(self._cache, fp)
+                pickle.dump(self._cache.store, fp)
         except:
             _log.exception("Problem saving store persist file")
             _log.warn("Couldn't save store persist file")
@@ -232,21 +232,41 @@ class AutoSaveStore:
         self._cache.clear(path)
         self.save()
 
+    def batch(self):
+        """
+        Setup a batch process. Will not commit changes until commit() is called.
+        """
+        self._batch = True
+
+    def commit(self):
+        """
+        Commit the batched changes. Also ends the batch, so further updates will
+        resume normal behavior of immediately saving after.
+
+        If not in a batch, has no effect.
+        """
+        if not self._batch:
+            return
+        self.save()
+        self._batch = False
+
     def reset(self):
         """Remove all entries and reset the cache."""
         self._cache.reset()
-        self.save()
+        if not self._batch:
+            self.save()
 
     def set(self, path: str, value: Any):
         """Set the value at the given path. If it doesn't yet exist, it is created."""
         self._cache.set(path, value)
-        self.save()
+        if not self._batch:
+            self.save()
 
     def get(self, path: str) -> Tuple[Any, bool]:
         """Get the item at the given path. If it doesn't exist, (None, False) is
         returned; otherwise (value, True) is returned where value is the value
         stored at that path."""
-        return self.get(path)
+        return self._cache.get(path)
 
 
 def _recurse(leaf_fn: Callable[[str, Any], Any], obj: Union[str, Dict[str, Any]], cur_path: str):

@@ -190,7 +190,11 @@ class Card:
 
         if kwargs is not None:
             if 'id' in kwargs:
-                self.id = kwargs['id']
+                id = kwargs['id']
+                if isinstance(id, uuid.UUID):
+                    self.id = id
+                else:
+                    self.id = uuid.UUID(kwargs['id'])
             if 'set' in kwargs:
                 self.set = kwargs['set']
             if 'rarity' in kwargs:
@@ -341,7 +345,7 @@ class Card:
     
     def to_dict(self) -> Dict[str, Any]:
         return {
-            'id': self.id,
+            'id': str(self.id),
             'set': self.set,
             'rarity': self.rarity,
             'faces': [f.to_dict() for f in self.faces],
