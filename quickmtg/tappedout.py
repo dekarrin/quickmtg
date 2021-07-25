@@ -8,17 +8,18 @@ import html
 _log = logging.getLogger(__name__)
 _log.setLevel(logging.DEBUG)
 
-def parse_list_line(line: str) -> Tuple[int, OwnedCard]:
-    """Parse a line from tapped out board format to owned number and card."""
+def parse_list_line(line: str) -> OwnedCard:
+    """Parse a line from tapped out board format to owned card."""
     line = line.strip()
 
     raw_count, rest = line.split(' ', 1)
     count = int(raw_count.strip('x'))
     c = parse_card_line(rest)
-    return count, c
+    c.count = count
+    return c
 
-def to_list_line(owned: int, c: OwnedCard) -> str:
-    return '{:d}x {:s}'.format(owned, to_card_line(c))
+def to_list_line(c: OwnedCard) -> str:
+    return '{:d}x {:s}'.format(c.count, to_card_line(c))
 
 def parse_card_id(line: str) -> Card:
     """

@@ -1,6 +1,7 @@
+from datetime import timedelta
 from typing import Any, Dict, Optional
 from quickmtg.card import OwnedCard, SizeFull, SizeSmall, image_slug
-from . import scryfall, tappedout, layout
+from . import scryfall, tappedout, layout, util
 from .iterutil import grouper
 import logging
 import pprint
@@ -33,8 +34,8 @@ def create_view(api: scryfall.ScryfallAgent, list_file: str, output_dir: str):
     except FileExistsError:
         pass  # This is fine
 
-    _log.info("(1/4) Reading card data from inventory list and scryfall...")
-    cards = list()
+    _log.info("(1/5) Reading cards from tappedout inventory list...")
+    parsed_cards = list()
     with open(list_file, 'r') as fp:
         lineno = 0
         for line in fp:
@@ -42,32 +43,36 @@ def create_view(api: scryfall.ScryfallAgent, list_file: str, output_dir: str):
             if line.strip() == '':
                 continue
             try:
-                count, c = tappedout.parse_list_line(line)
-
-                if c.number == '':
-                    # need to get the number
-                    c.number = api.get_card_default_num(c.name, c.set)
-
-                full_data = api.get_card_by_num(c.set, c.number).to_dict()                
-                owned = OwnedCard(**full_data)
-                owned.foil = c.foil
-                owned.condition = c.condition
-                c = owned
-                cards.append({
-                    'card': c,
-                    'count': count
-                })
+                c = tappedout.parse_list_line(line)           
             except Exception as e:
-                _log.exception("problem reading line {:d}".format(lineno))
-                _log.error("problem reading line {:d} of tappedout list so skipping line: {:s}".format(lineno, str(e)))
-
-    if len(cards) < 1:
+                _log.exception("skipping bad line {:d}: problem reading line".format(lineno))
+                continue
+                
+            parsed_cards.append(c)
+    
+    if len(parsed_cards) < 1:
         _log.error("No cards were successfully processed!")
         return
+    
+    _log.info("(2/5) Filling incomplete card data with data from scryfall...")
+    cards = list()
+    show_progress = util.once_every(timedelta(seconds=5), lambda: _log.info("{:.3f}% done...".format(len(cards) / len(parsed_cards))))
+    for c in parsed_cards:
+        show_progress()
+        if c.number == '':
+            # need to get the number
+            c.number = api.get_card_default_num(c.name, c.set)
+
+        full_data = api.get_card_by_num(c.set, c.number).to_dict()                
+        owned = OwnedCard(**full_data)
+        owned.foil = c.foil
+        owned.condition = c.condition
+        owned.count = c.count
+        cards.append(owned)
 
     # cards are now gotten, generate html:
     # 1. gen the html
-    _log.info("(2/4) Generating binder pages...")
+    _log.info("(3/5) Generating binder pages...")
     rows = 3
     cols = 3
     cards_on_page = rows * cols
@@ -82,7 +87,14 @@ def create_view(api: scryfall.ScryfallAgent, list_file: str, output_dir: str):
             fp.write(content)
 
     # copy the images
-    _log.info("(3/4) Copying image data (this may take awhile)...")
+    _log.info("(4/5) Copying image data to output directory...")
+    steps_done = 0
+    # four steps per card because:
+    # 1 for get small, 1 for get large,
+    # 1 for save small, 1 for save large
+    # 1 at the v end is for getting the card back image
+    steps_needed = (len(cards) * 4) + 1
+    show_progress = util.once_every(timedelta(seconds=5), lambda: _log.info("{:.3f}% done...".format(steps_done / steps_needed)))
     assets_path = os.path.join(output_dir, 'assets')
     try:
         os.mkdir(assets_path)
@@ -93,16 +105,23 @@ def create_view(api: scryfall.ScryfallAgent, list_file: str, output_dir: str):
         os.mkdir(images_path)
     except FileExistsError:
         pass  # This is fine
-    for cdata in cards:
-        c = cdata['card']
+    for c in cards:
         image_data_small = api.get_card_image(c.set, c.number, size=SizeSmall)
         dest_path_small = os.path.join(images_path, image_slug(c, SizeSmall))
+        steps_done += 1
+        show_progress()
         image_data_full = api.get_card_image(c.set, c.number, size=SizeFull)
         dest_path_full = os.path.join(images_path, image_slug(c, SizeFull))
+        steps_done += 1
+        show_progress()
         with open(dest_path_small, 'wb') as fp:
             fp.write(image_data_small)
+        steps_done += 1
+        show_progress()
         with open(dest_path_full, 'wb') as fp:
             fp.write(image_data_full)
+        steps_done += 1
+        show_progress()
     # get back image
     image_data_back, back_fmt = api.get_card_back_image()
     dest_path_back = os.path.join(images_path, 'back.{:s}'.format(back_fmt))
@@ -110,7 +129,7 @@ def create_view(api: scryfall.ScryfallAgent, list_file: str, output_dir: str):
         fp.write(image_data_back)
 
     # generate an index page
-    _log.info("(4/4) Generating index pages...")
+    _log.info("(5/5) Generating index pages...")
     index_content = layout.gen_index_page()
     index_path = os.path.join(output_dir, 'index.html')
     with open(index_path, 'w') as fp:

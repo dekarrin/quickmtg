@@ -353,6 +353,7 @@ class OwnedCard(Card):
         super().__init__(**kwargs)
         self.condition: Condition = None
         self.foil: bool = False
+        self.count: int = 0
 
         if kwargs is not None:
             if 'condition' in kwargs:
@@ -363,6 +364,8 @@ class OwnedCard(Card):
                     self.condition = cond_from_symbol(c)
             if 'foil' in kwargs:
                 self.foil = kwargs['foil']
+            if 'count' in kwargs:
+                self.count = int(kwargs['count'])
 
     def __eq__(self, other) -> bool:
         if not isinstance(other, OwnedCard):
