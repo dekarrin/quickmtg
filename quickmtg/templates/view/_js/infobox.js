@@ -2,7 +2,9 @@ $("#{{ id }}").dialog({
     autoOpen: false,
     modal: true,
     resizeable: false,
-    draggable: false
+    draggable: false,
+    width: "80%",
+    height: $(window).height() - 100
 });
 $("{{ opener_selector }}").click(function(e) {
     // get the data fields

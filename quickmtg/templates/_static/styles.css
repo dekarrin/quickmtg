@@ -115,3 +115,7 @@ table.binderpage td img.multiowned {
     left: -0.2em;
     z-index: 0;
 }
+
+#cardinfo-modal {
+    display: none;
+}
