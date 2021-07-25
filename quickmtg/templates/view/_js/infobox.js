@@ -1,10 +1,21 @@
+var close_if_click_out = function(e) {
+    $("#{{ id }}").dialog("close");
+}
 $("#{{ id }}").dialog({
     autoOpen: false,
     modal: true,
-    resizeable: false,
+    resizable: false,
     draggable: false,
-    width: "80%",
-    height: $(window).height() - 100
+    open: function(e, ui) {
+        var uiWidth = $(window).width() * 0.8;
+        if (uiWidth > 800) {
+            uiWidth = 800;
+        }
+        $("#{{ id }}").dialog("option", "width", uiWidth);
+    },
+    beforeClose: function(e, ui) {
+        $("body").off("click", ".ui-widget-overlay", close_if_click_out);
+    }
 });
 $("{{ opener_selector }}").click(function(e) {
     // get the data fields
@@ -31,5 +42,6 @@ $("{{ opener_selector }}").click(function(e) {
     modal.dialog("option", "title", cardName);
     
     // finally, open it:
+    $("body").on("click", ".ui-widget-overlay", close_if_click_out);
     modal.dialog("open");
 });

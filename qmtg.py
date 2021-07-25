@@ -5,6 +5,7 @@ import pprint
 import logging
 import logging.handlers
 import argparse
+import os.path
 
 
 _log = logging.getLogger('qmtg')
@@ -25,9 +26,11 @@ def main():
     sys.exit(0)
 
 def _parse_cli_and_run():
-    api = scryfall.ScryfallAgent('api.scryfall.com', pretty=False)
+    api: scryfall.ScryfallAgent = None
+    default_home_path = os.path.join(os.path.expanduser("~"), '.qmtg')
     
     parser = argparse.ArgumentParser(description="MTG library organizer")
+    parser.add_argument('-m', '--qmtg-home', help='Where to store persistence data and locations of binders.', default=default_home_path)
 
     # space at the end of metavar is not a typo; we need it so help output is prettier
     subparsers = parser.add_subparsers(description="Functionality to execute.", metavar=" SUBCOMMAND ", dest='cmd')
@@ -72,8 +75,17 @@ def _parse_cli_and_run():
     card_image_parser.set_defaults(func=lambda ns: get_card_image(api, ns.set, ns.num, ns.lang, ns.size, ns.back))
     
     args = parser.parse_args()
-    args.func(args)
 
+    try:
+        os.mkdir(args.qmtg_home, 0o770)
+    except FileExistsError:
+        pass
+        # thats okay we just need it to exist
+
+    cachepath = os.path.join(args.qmtg_home, 'scryfall.p')
+    filepath = os.path.join(args.qmtg_home, 'filestore')
+    api = scryfall.ScryfallAgent('api.scryfall.com', pretty=False, cachefile=cachepath, file_home=filepath)
+    args.func(args)
 
 class _ExactLevelFilter(object):
     """

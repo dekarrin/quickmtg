@@ -119,3 +119,7 @@ table.binderpage td img.multiowned {
 #cardinfo-modal {
     display: none;
 }
+
+div.ui-dialog {
+    position: fixed;
+}
