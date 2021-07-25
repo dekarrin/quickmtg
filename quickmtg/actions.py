@@ -1,6 +1,6 @@
 from datetime import timedelta
 from typing import Any, Dict, Optional
-from quickmtg.card import OwnedCard, SizeFull, SizeSmall, image_slug
+from quickmtg.card import OwnedCard, SizeFull, SizeLarge, SizeSmall, image_slug
 from . import scryfall, tappedout, layout, util
 from .iterutil import grouper
 import logging
@@ -107,12 +107,12 @@ def create_view(api: scryfall.ScryfallAgent, list_file: str, output_dir: str):
     except FileExistsError:
         pass  # This is fine
     for c in cards:
-        image_data_small = api.get_card_image(c.set, c.number, size=SizeSmall)
-        dest_path_small = os.path.join(images_path, image_slug(c, SizeSmall))
+        image_data_small = api.get_card_image(c.set, c.number, size=SizeLarge)
+        dest_path_small = os.path.join(images_path, image_slug(c, SizeLarge))
         steps_done += 1
         show_progress()
-        image_data_full = api.get_card_image(c.set, c.number, size=SizeFull)
-        dest_path_full = os.path.join(images_path, image_slug(c, SizeFull))
+        image_data_full = api.get_card_image(c.set, c.number, size=SizeLarge)
+        dest_path_full = os.path.join(images_path, image_slug(c, SizeLarge))
         steps_done += 1
         show_progress()
         with open(dest_path_small, 'wb') as fp:
