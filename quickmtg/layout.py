@@ -21,11 +21,18 @@ def gen_stylesheet() -> str:
     template = _jinja_env.get_template('_static/styles.css')
     return template.render()
 
-def gen_index_page() -> str:
+def gen_index_page(binder_name="default") -> str:
     template = _jinja_env.get_template('view/index.html.jinja')
-    return template.render(binder_name="default")
+    return template.render(binder_name=binder_name)
 
-def gen_binder_page(cards: Sequence[Dict[str, Any]], pageno: int, total_pages: int, rows: int, cols: int):
+def gen_binder_page(
+    cards: Sequence[Dict[str, Any]],
+    pageno: int,
+    total_pages: int,
+    rows: int,
+    cols: int,
+    binder_name="default"
+):
     template = _jinja_env.get_template('view/binder.html.jinja')
 
     card_rows = list()
@@ -38,7 +45,7 @@ def gen_binder_page(cards: Sequence[Dict[str, Any]], pageno: int, total_pages: i
         card_rows.append(row)
 
     data = {
-        'binder_name': "default",
+        'binder_name': binder_name,
         'page_number': pageno,
         'total_pages': total_pages,
         'cards': card_rows

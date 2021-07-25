@@ -1,13 +1,15 @@
 from datetime import timedelta
 from typing import Any, Dict, Optional
-from quickmtg.card import OwnedCard, SizeFull, SizeLarge, SizeSmall, image_slug
-from . import scryfall, tappedout, layout, util
+from .card import OwnedCard, SizeFull, SizeLarge, SizeSmall, image_slug
+from . import scryfall, tappedout, layout, util, cache
 from .iterutil import grouper
 import logging
 import pprint
 import os
+import re
 import math
 import sys
+import json
 
 _log = logging.getLogger(__name__)
 _log.setLevel(logging.DEBUG)
@@ -28,7 +30,7 @@ def get_card_image(api: scryfall.ScryfallAgent, set: str, num: str, lang: str, s
     api.get_card_image(set, num, lang, size, back)
     _log.info("card downloaded; check ./.scryfall directory")
 
-def create_view(api: scryfall.ScryfallAgent, list_file: str, output_dir: str):
+def create_view(store: cache.AutoSaveStore, api: scryfall.ScryfallAgent, list_file: str, output_dir: str, name="default"):
     try:
         os.mkdir(output_dir)
     except FileExistsError:
@@ -80,7 +82,7 @@ def create_view(api: scryfall.ScryfallAgent, list_file: str, output_dir: str):
     pageno = 0
     for page in grouper(cards, cards_on_page):
         pageno += 1
-        content = layout.gen_binder_page(page, pageno, total_pages, rows, cols)
+        content = layout.gen_binder_page(page, pageno, total_pages, rows, cols, binder_name=name)
         file_name = 'binder{:03d}.html'.format(pageno)
         file_path = os.path.join(output_dir, file_name)
 
@@ -131,7 +133,7 @@ def create_view(api: scryfall.ScryfallAgent, list_file: str, output_dir: str):
 
     # generate an index page
     _log.info("(5/6) Generating index pages...")
-    index_content = layout.gen_index_page()
+    index_content = layout.gen_index_page(binder_name=name)
     index_path = os.path.join(output_dir, 'index.html')
     with open(index_path, 'w') as fp:
         fp.write(index_content)
@@ -141,6 +143,19 @@ def create_view(api: scryfall.ScryfallAgent, list_file: str, output_dir: str):
     dest_path = os.path.join(assets_path, 'styles.css')
     with open(dest_path, 'w') as fp:
         fp.write(stylesheet)
+    # dump info about the binder to the directory and main store
+    id_name = re.sub(r'[^a-z0-9_]', '_', name)
+    binder_data = {
+        'path': output_dir,
+        'name': name,
+        'id': id_name,
+        'cards': list([c.to_dict() for c in cards])
+    }
+    json_dest = os.path.join(output_dir, 'binder.json')
+    with open(json_dest, 'w') as fp:
+        json.dump(binder_data, fp, indent=4)
+    store.set('binders/' + id_name, binder_data)
+
 
 
     _log.info("Done! Page is now ready at {:s}".format(output_dir + '/index.html'))
