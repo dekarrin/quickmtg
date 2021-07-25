@@ -139,7 +139,7 @@ def create_view(api: scryfall.ScryfallAgent, list_file: str, output_dir: str):
     _log.info("(6/6) Copying static assets...")
     stylesheet = layout.gen_stylesheet()
     dest_path = os.path.join(assets_path, 'styles.css')
-    with open(dest_path, 'wb') as fp:
+    with open(dest_path, 'w') as fp:
         fp.write(stylesheet)
 
 

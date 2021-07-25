@@ -19,7 +19,7 @@ _jinja_env.filters['sizew'] = filters.size_width
 
 """gen_x functions end in newline, make_x funcs do not"""
 
-def gen_stylesheet():
+def gen_stylesheet() -> str:
     template = _jinja_env.get_template('_static/styles.css')
     return template.render()
 
