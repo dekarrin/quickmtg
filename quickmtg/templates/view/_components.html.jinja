@@ -41,7 +41,7 @@
                     // get the data fields
                     var data_source = $(e.target);
                     if ("{{ opener_data_selector }}" !== "") {
-                        data_source = data_source.find({{ opener_data_selector }});
+                        data_source = data_source.find("{{ opener_data_selector }}");
                     }
                     var cardName = data_source.data("name");
                     var cardCount = data_source.data("owned");
