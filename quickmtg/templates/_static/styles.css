@@ -38,6 +38,12 @@ nav.binder {
     margin-bottom: 1.0em;
 }
 
+nav.binder * {
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+}
+
 nav.binder a {
     text-decoration: none;
     font-size: xx-large;
@@ -98,6 +104,9 @@ table.binderpage td img {
     top: 0.4em;
     left: 0.4em;
     z-index: 1;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
 }
 
 table.binderpage td img.multiowned {

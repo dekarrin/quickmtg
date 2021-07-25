@@ -13,3 +13,31 @@
     {% endif %}
 </nav>
 {% endmacro %}
+
+{% macro infobox_dialog(id) %}
+                <div id="{{ id }}">
+                    <h4 class="detail-title"></h4>
+                    <img class="detail-image" />
+                    <table class="detail-data">
+                        <tr>
+                            <td>Name</td>
+                            <td class="detail-name"></td>
+                        </tr>
+                        <tr>
+                            <td>Owned</td>
+                            <td class="detail-owned"></td>
+                        </tr>
+                        <tr>
+                            <td>Condition</td>
+                            <td class="detail-cond"></td>
+                        </tr>
+                    </table>
+                </div>
+{% endmacro %}
+
+{% macro infobox_setup(id, opener_selector, eventfn) %}
+                $("#{{ id }}").dialog({autoOpen: false});
+                $(opener_selector).click(function() {
+                    $("#{{ id }}").dialog("open");
+                })
+{% endmacro %}

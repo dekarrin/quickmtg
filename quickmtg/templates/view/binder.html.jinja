@@ -2,7 +2,7 @@
 {% import "view/_components.html.jinja" as components %}
 
 {% block onready %}
-                $("#cardinfo").dialog({autoOpen: false});
+                {{ components.infobox_setup("cardinfo-modal") }}
 {% endblock %}
 
 {% block title %}Binder Page {{ page_number }}{% endblock %}
@@ -13,6 +13,8 @@
 {% endblock %}
 
 {% block content %}
+                {{ components.infobox_dialog("cardinfo-modal") }}
+
                 {{ components.binder_nav(page_number, total_pages)|indent(16) }}
                 <table class="binderpage">
                 {% for row in cards %}
@@ -22,7 +24,7 @@
                         <td class="empty"><img src="assets/images/back.jpg" alt="a blank slot" width="{{ 'small'|sizew }}" height="{{ 'small'|sizeh }}" /></td>
                         {% else %}
                         <td class="filled{{ " foil" if card.foil else "" }}">
-                            <a class="card">
+                            <a class="card" href="#" data-name="{{ card.name }}" data-owned="{{ card.owned }}" data-foil="{{ card.foil }}" data-cond="{{ card.condition }}" data-img="{{ card | cardfile('full') }}">
                                 <img src="assets/images/{{ card | cardfile }}" width="{{ 'small'|sizew }}" height="{{ 'small'|sizeh }}" alt="{{ card.setnum }}" />
                                 
                                 {% if card.count > 1 %}
