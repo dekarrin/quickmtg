@@ -8,6 +8,12 @@
         <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
     </head>
     <body>
+    <script>
+        $(function() {
+            {{% block onready }}
+            {{% endblock }}
+        })
+    </script>
         <div id="wrap">
             <header>
             {% block header %}

@@ -1,6 +1,10 @@
 {% extends "view/_base.html.jinja" %}
 {% import "view/_components.html.jinja" as components %}
 
+{% block onready %}
+                $("#cardinfo").dialog({autoOpen: false});
+{% endblock %}
+
 {% block title %}Binder Page {{ page_number }}{% endblock %}
 
 {% block header %}
@@ -17,7 +21,15 @@
                         {% if card is none %}
                         <td class="empty"><img src="assets/images/back.jpg" alt="a blank slot" width="{{ 'small'|sizew }}" height="{{ 'small'|sizeh }}" /></td>
                         {% else %}
-                        <td class="filled{{ " foil" if card.foil else "" }}"><img src="assets/images/{{ card | cardfile }}" width="{{ 'small'|sizew }}" height="{{ 'small'|sizeh }}" alt="{{ card.setnum }}" /></td>
+                        <td class="filled{{ " foil" if card.foil else "" }}">
+                            <a class="card">
+                                <img src="assets/images/{{ card | cardfile }}" width="{{ 'small'|sizew }}" height="{{ 'small'|sizeh }}" alt="{{ card.setnum }}" />
+                                
+                                {% if card.count > 1 %}
+                                <img class="multiowned" src="assets/images/{{ card | cardfile }}" width="{{ 'small'|sizew }}" height="{{ 'small'|sizeh }}" alt="{{ card.setnum }}" />
+                                {% endif %}
+                            </a>
+                        </td>
                         {% endif %}
                     {% endfor %}
                     </tr>
