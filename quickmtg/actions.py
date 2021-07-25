@@ -34,7 +34,7 @@ def create_view(api: scryfall.ScryfallAgent, list_file: str, output_dir: str):
     except FileExistsError:
         pass  # This is fine
 
-    _log.info("(1/5) Reading cards from tappedout inventory list...")
+    _log.info("(1/6) Reading cards from tappedout inventory list...")
     parsed_cards = list()
     with open(list_file, 'r') as fp:
         lineno = 0
@@ -54,7 +54,7 @@ def create_view(api: scryfall.ScryfallAgent, list_file: str, output_dir: str):
         _log.error("No cards were successfully processed!")
         return
     
-    _log.info("(2/5) Filling incomplete card data with data from scryfall...")
+    _log.info("(2/6) Filling incomplete card data with data from scryfall...")
     cards = list()
     show_progress = util.once_every(timedelta(seconds=5), lambda: _log.info(util.progress(cards, parsed_cards)))
     for c in parsed_cards:
@@ -72,7 +72,7 @@ def create_view(api: scryfall.ScryfallAgent, list_file: str, output_dir: str):
 
     # cards are now gotten, generate html:
     # 1. gen the html
-    _log.info("(3/5) Generating binder pages...")
+    _log.info("(3/6) Generating binder pages...")
     rows = 3
     cols = 3
     cards_on_page = rows * cols
@@ -88,7 +88,7 @@ def create_view(api: scryfall.ScryfallAgent, list_file: str, output_dir: str):
             fp.write(content)
 
     # copy the images
-    _log.info("(4/5) Copying image data to output directory...")
+    _log.info("(4/6) Copying image data to output directory...")
     steps_done = 0
     # four steps per card because:
     # 1 for get small, 1 for get large,
@@ -130,11 +130,18 @@ def create_view(api: scryfall.ScryfallAgent, list_file: str, output_dir: str):
         fp.write(image_data_back)
 
     # generate an index page
-    _log.info("(5/5) Generating index pages...")
+    _log.info("(5/6) Generating index pages...")
     index_content = layout.gen_index_page()
     index_path = os.path.join(output_dir, 'index.html')
     with open(index_path, 'w') as fp:
         fp.write(index_content)
+
+    _log.info("(6/6) Copying static assets...")
+    stylesheet = layout.gen_stylesheet()
+    dest_path = os.path.join(assets_path, 'styles.css')
+    with open(dest_path, 'wb') as fp:
+        fp.write(stylesheet)
+
 
     _log.info("Done! Page is now ready at {:s}".format(output_dir + '/index.html'))
     
