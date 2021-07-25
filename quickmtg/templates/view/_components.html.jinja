@@ -16,21 +16,23 @@
 
 {% macro infobox_dialog(id) %}
 <div id="{{ id }}">
-    <img class="detail-image" data-fill="image" />
-    <table class="detail-data">
-        <tr>
-            <td class="detail-header">Owned</td>
-            <td class="detail-data" data-fill="owned"></td>
-        </tr>
-        <tr>
-            <td class="detail-header">Foil</td>
-            <td class="detail-data" data-fill="foil"></td>
-        </tr>
-        <tr>
-            <td class="detail-header">Condition</td>
-            <td class="detail-data" data-fill="cond"></td>
-        </tr>
-    </table>
+    <div class="infobox-center">
+        <img class="detail-image card" data-fill="image" />
+        <table class="detail-data">
+            <tr>
+                <td class="detail-header">Owned</td>
+                <td class="detail-data" data-fill="owned"></td>
+            </tr>
+            <tr>
+                <td class="detail-header">Foil</td>
+                <td class="detail-data" data-fill="foil"></td>
+            </tr>
+            <tr>
+                <td class="detail-header">Condition</td>
+                <td class="detail-data" data-fill="cond"></td>
+            </tr>
+        </table>
+    </div>
 </div>
 {%- endmacro %}
 

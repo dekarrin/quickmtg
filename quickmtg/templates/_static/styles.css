@@ -123,3 +123,34 @@ table.binderpage td img.multiowned {
 div.ui-dialog {
     position: fixed;
 }
+
+#cardinfo-modal .infobox-center {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+img.card {
+    border-radius: 7px;
+}
+
+#cardinfo-modal .detail-image {
+    width: 50%;
+}
+
+#cardinfo-modal img, #cardinfo-modal table {
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 0.8em;
+}
+
+#cardinfo-modal table {
+    width: 70%;
+}
+
+#cardinfo-modal .detail-header {
+    width: 50%;
+}
+
+#cardinfo-modal td.detail-data {
+    text-align: right;
+}

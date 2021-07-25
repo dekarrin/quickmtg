@@ -11,7 +11,9 @@ $("#{{ id }}").dialog({
         if (uiWidth > 800) {
             uiWidth = 800;
         }
+        var borderWidth = uiWidth * 0.025;
         $("#{{ id }}").dialog("option", "width", uiWidth);
+        $("#{{ id }}").dialog("widget").find(".detail-image").css("border-radius", borderWidth);
     },
     beforeClose: function(e, ui) {
         $("body").off("click", ".ui-widget-overlay", close_if_click_out);
