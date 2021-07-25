@@ -23,11 +23,8 @@ def gen_index_page() -> str:
     template = _jinja_env.get_template('view/index.html.jinja')
     return template.render(binder_name="default")
 
-def gen_binder_page(cards: Sequence[Dict[str, Any]], pageno: int, rows: int, cols: int):
+def gen_binder_page(cards: Sequence[Dict[str, Any]], pageno: int, total_pages: int, rows: int, cols: int):
     template = _jinja_env.get_template('view/binder.html.jinja')
-
-    cards_on_page = rows * cols
-    total_pages = int(math.ceil(len(cards) / cards_on_page))
 
     card_rows = list()
     for y in range(rows):

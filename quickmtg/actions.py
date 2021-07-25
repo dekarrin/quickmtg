@@ -76,10 +76,11 @@ def create_view(api: scryfall.ScryfallAgent, list_file: str, output_dir: str):
     rows = 3
     cols = 3
     cards_on_page = rows * cols
+    total_pages = int(math.ceil(len(cards) / cards_on_page))
     pageno = 0
     for page in grouper(cards, cards_on_page):
         pageno += 1
-        content = layout.gen_binder_page(page, pageno, rows, cols)
+        content = layout.gen_binder_page(page, pageno, total_pages, rows, cols)
         file_name = 'binder{:03d}.html'.format(pageno)
         file_path = os.path.join(output_dir, file_name)
 

@@ -1,13 +1,13 @@
 {% macro binder_nav(page_number, total_pages) %}
 <nav class="binder">
     {% if page_number - 1 > 0 %}
-    <a href="binder{{ '%03d' % (page_number - 1) }}">&larr;</a>
+    <a href="binder{{ '%03d' % (page_number - 1) }}.html">&larr;</a>
     {% else %}
     <a class="disabled" href="#">&larr;</a>
     {% endif %}
     <a href="index.html">Index</a>
     {% if page_number + 1 <= total_pages %}
-    <a href="binder{{ '%03d' % (page_number + 1) }}">&rarr;</a>
+    <a href="binder{{ '%03d' % (page_number + 1) }}.html">&rarr;</a>
     {% else %}
     <a class="disabled" href="#">&rarr;</a>
     {% endif %}
