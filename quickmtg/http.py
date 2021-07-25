@@ -119,10 +119,12 @@ class HttpAgent(object):
 		self._log_full_response = log_full_response
 
 		self._antiflood_wait = lambda: None
+		self._antiflood_reset = lambda: None
 		if antiflood_secs > 0:
 			self._antiflood_timer = timer.WaitPeriodTimer(timedelta(seconds=antiflood_secs))
 			self._antiflood_timer.start()
 			self._antiflood_wait = self._antiflood_timer.next
+			self._antiflood_reset = self._antiflood_timer.reset
 
 
 	def start_new_session(self):
@@ -299,6 +301,7 @@ class HttpAgent(object):
 
 		self._antiflood_wait()
 		resp = sess.send(prepared)
+		self._antiflood_reset()
 		_log_http_response(resp, self.log_full_response)
 
 		if resp.status_code not in ignored_errors:

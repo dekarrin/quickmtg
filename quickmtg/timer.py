@@ -53,7 +53,13 @@ class WaitPeriodTimer:
         
         if wait_time > 0:
             time.sleep(wait_time)
+        
+        self.reset()
 
+    def reset(self):
+        """
+        Reset the wait time to start from this point forward.
+        """
         self._last_called = time.monotonic()
 
     def stop(self):
