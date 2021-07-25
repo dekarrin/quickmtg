@@ -12,55 +12,55 @@
     <a class="arrow disabled" href="#">&rarr;</a>
     {% endif %}
 </nav>
-{% endmacro %}
+{%- endmacro %}
 
 {% macro infobox_dialog(id) %}
-                <div id="{{ id }}">
-                    <h4 class="detail-title" data-fill="name"></h4>
-                    <img class="detail-image" data-fill="image" />
-                    <table class="detail-data">
-                        <tr>
-                            <td class="detail-header">Owned</td>
-                            <td class="detail-data" data-fill="owned"></td>
-                        </tr>
-                        <tr>
-                            <td class="detail-header">Foil</td>
-                            <td class="detail-data" data-fill="foil"></td>
-                        </tr>
-                        <tr>
-                            <td class="detail-header">Condition</td>
-                            <td class="detail-data" data-fill="cond"></td>
-                        </tr>
-                    </table>
-                </div>
-{% endmacro %}
+<div id="{{ id }}">
+    <h4 class="detail-title" data-fill="name"></h4>
+    <img class="detail-image" data-fill="image" />
+    <table class="detail-data">
+        <tr>
+            <td class="detail-header">Owned</td>
+            <td class="detail-data" data-fill="owned"></td>
+        </tr>
+        <tr>
+            <td class="detail-header">Foil</td>
+            <td class="detail-data" data-fill="foil"></td>
+        </tr>
+        <tr>
+            <td class="detail-header">Condition</td>
+            <td class="detail-data" data-fill="cond"></td>
+        </tr>
+    </table>
+</div>
+{%- endmacro %}
 
 {% macro infobox_setup(id, opener_selector, opener_data_selector='') %}
-                $("#{{ id }}").dialog({autoOpen: false});
-                $("{{ opener_selector }}").click(function(e) {
-                    // get the data fields
-                    var data_source = $(e.target);
-                    if ("{{ opener_data_selector }}" !== "") {
-                        data_source = data_source.find("{{ opener_data_selector }}");
-                    }
-                    var cardName = data_source.data("name");
-                    var cardCount = data_source.data("owned");
-                    var cardFoil = "no";
-                    if (data_source.data("foil").toLowerCase() === 'true') {
-                        cardFoil = "yes";
-                    }
-                    var cardCond = data_source.data("cond");
-                    var cardImage = 'assets/images/' + data_source.data("img");
+$("#{{ id }}").dialog({autoOpen: false});
+$("{{ opener_selector }}").click(function(e) {
+    // get the data fields
+    var data_source = $(this);
+    if ("{{ opener_data_selector }}" !== "") {
+        data_source = data_source.find("{{ opener_data_selector }}");
+    }
+    var cardName = data_source.data("name");
+    var cardCount = data_source.data("owned");
+    var cardFoil = "no";
+    if (data_source.data("foil").toLowerCase() === 'true') {
+        cardFoil = "yes";
+    }
+    var cardCond = data_source.data("cond");
+    var cardImage = 'assets/images/' + data_source.data("img");
 
-                    // put data fields in the modal
-                    var modal = $("#{{ id }}");
-                    modal.find("[data-fill='name']").text(cardName);
-                    modal.find("[data-fill='owned']").text(cardOwned);
-                    modal.find("[data-fill='foil']").text(cardFoil);
-                    modal.find("[data-fill='cond']").text(cardCond);
-                    modal.find("img[data-fill='image']").attr('src', cardImage);
-                    
-                    // finally, open it:
-                    modal.dialog("open");
-                })
-{% endmacro %}
+    // put data fields in the modal
+    var modal = $("#{{ id }}");
+    modal.find("[data-fill='name']").text(cardName);
+    modal.find("[data-fill='owned']").text(cardCount);
+    modal.find("[data-fill='foil']").text(cardFoil);
+    modal.find("[data-fill='cond']").text(cardCond);
+    modal.find("img[data-fill='image']").attr('src', cardImage);
+    
+    // finally, open it:
+    modal.dialog("open");
+});
+{%- endmacro %}

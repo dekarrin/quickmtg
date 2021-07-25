@@ -6,14 +6,17 @@
         <title>{% block title %}QuickMTG{% endblock %}</title>
         <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
         <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+        <link rel="stylesheet" type="text/css" href="https://code.jquery.com/ui/1.12.1/themes/smoothness/jquery-ui.css" />
     </head>
     <body>
-    <script>
-        $(function() {
-            {% block onready %}
-            {% endblock %}
-        })
-    </script>
+        <script>
+            $(function() {
+                {% filter indent(width=4*4, first=true, blank=true) %}
+                {% block onready %}
+                {% endblock %}
+                {%+ endfilter +%}
+            });
+        </script>
         <div id="wrap">
             <header>
             {% block header %}

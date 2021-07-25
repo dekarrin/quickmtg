@@ -2,8 +2,12 @@
 {% import "view/_components.html.jinja" as components %}
 
 {% block onready %}
-                {{ components.infobox_setup("cardinfo-modal", "a.card") }}
-{% endblock %}
+var h = 2;
+var i = 7;
+{{ components.infobox_setup("cardinfo-modal", "a.card") }}
+var j = 8;
+var k = 9;
+{%- endblock %}
 
 {% block title %}Binder Page {{ page_number }}{% endblock %}
 
@@ -13,8 +17,7 @@
 {% endblock %}
 
 {% block content %}
-                {{ components.infobox_dialog("cardinfo-modal") }}
-
+                {{ components.infobox_dialog("cardinfo-modal") | indent(16) }}
                 {{ components.binder_nav(page_number, total_pages)|indent(16) }}
                 <table class="binderpage">
                 {% for row in cards %}
