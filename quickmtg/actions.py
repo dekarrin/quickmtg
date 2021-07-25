@@ -56,7 +56,7 @@ def create_view(api: scryfall.ScryfallAgent, list_file: str, output_dir: str):
     
     _log.info("(2/5) Filling incomplete card data with data from scryfall...")
     cards = list()
-    show_progress = util.once_every(timedelta(seconds=5), lambda: _log.info("{:.3f}% done...".format(len(cards) / len(parsed_cards))))
+    show_progress = util.once_every(timedelta(seconds=5), lambda: _log.info(util.progress(cards, parsed_cards)))
     for c in parsed_cards:
         show_progress()
         if c.number == '':
@@ -94,7 +94,7 @@ def create_view(api: scryfall.ScryfallAgent, list_file: str, output_dir: str):
     # 1 for save small, 1 for save large
     # 1 at the v end is for getting the card back image
     steps_needed = (len(cards) * 4) + 1
-    show_progress = util.once_every(timedelta(seconds=5), lambda: _log.info("{:.3f}% done...".format(steps_done / steps_needed)))
+    show_progress = util.once_every(timedelta(seconds=5), lambda: _log.info(util.progress(steps_done, steps_needed)))
     assets_path = os.path.join(output_dir, 'assets')
     try:
         os.mkdir(assets_path)

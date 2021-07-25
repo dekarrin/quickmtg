@@ -20,6 +20,23 @@ class _TimeLimitedFuncCall(Generic[T]):
         else:
             return None
 
+def progress(current, target):
+    try:
+        iter(current)
+        current = len(current)
+    except TypeError:
+        # not iterable, cant get a length
+        pass
+
+    try:
+        iter(target)
+        target = len(target)
+    except TypeError:
+        # not iterable, cant get a length
+        pass
+
+    return '{:.3f}% done...'.format((current / target) * 100)
+
 def once_every(period: datetime.timedelta, fn: Callable[[], T]) -> Callable[[], Optional[T]]:
     """
     Return a 'check' function that performs the given function only once every
