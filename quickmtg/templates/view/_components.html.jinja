@@ -37,10 +37,10 @@
 
 {% macro infobox_setup(id, opener_selector, opener_data_selector='') %}
                 $("#{{ id }}").dialog({autoOpen: false});
-                $(opener_selector).click(function(e) {
+                $("{{ opener_selector }}").click(function(e) {
                     // get the data fields
                     var data_source = $(e.target);
-                    if ({{ opener_data_selector }} != '') {
+                    if ("{{ opener_data_selector }}" !== "") {
                         data_source = data_source.find({{ opener_data_selector }});
                     }
                     var cardName = data_source.data("name");
@@ -54,10 +54,10 @@
 
                     // put data fields in the modal
                     var modal = $("#{{ id }}");
-                    modal.find("[data-fill='name']).text(cardName);
-                    modal.find("[data-fill='owned']).text(cardOwned);
-                    modal.find("[data-fill='foil']).text(cardFoil);
-                    modal.find("[data-fill='cond']).text(cardCond);
+                    modal.find("[data-fill='name']").text(cardName);
+                    modal.find("[data-fill='owned']").text(cardOwned);
+                    modal.find("[data-fill='foil']").text(cardFoil);
+                    modal.find("[data-fill='cond']").text(cardCond);
                     modal.find("img[data-fill='image']").attr('src', cardImage);
                     
                     // finally, open it:
