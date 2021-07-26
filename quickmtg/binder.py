@@ -17,7 +17,7 @@ class Binder:
         self.cards: List[OwnedCard] = list()
 
         if 'id' in kwargs:
-            self.id = re.sub(r'[^a-z0-9_]', '_', str(kwargs['id']).lower())
+            self.id = kwargs['id']
         if 'name' in kwargs:
             self.name = kwargs['name']
         if 'path' in kwargs:
@@ -31,6 +31,14 @@ class Binder:
                     # assume it's a dict
                     converted_card = OwnedCard(**c)
                     self.cards.append(converted_card)
+
+    @property
+    def id(self) -> str:
+        return self._id
+
+    @id.setter
+    def id(self, value: str):
+        self._id = re.sub(r'[^a-z0-9_]', '_', str(value).lower())
 
     def __eq__(self, other) -> bool:
         if not isinstance(other, Binder):
