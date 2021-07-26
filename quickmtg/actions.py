@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Sequence
 from .card import Card, OwnedCard, SizeFull, SizeLarge, SizeSmall, image_slug
 from . import scryfall, tappedout, layout, util, storage, binder as qmtgbinder
 from .iterutil import grouper
@@ -10,6 +10,7 @@ import re
 import math
 import sys
 import json
+import shutil
 
 _log = logging.getLogger(__name__)
 _log.setLevel(logging.DEBUG)
@@ -77,76 +78,15 @@ def create_view(store: storage.AutoSaveStore, api: scryfall.ScryfallAgent, list_
         cards.append(owned)
 
     # cards are now gotten, generate html:
-    # 1. gen the html
     _log.info("(3/6) Generating binder pages...")
-    rows = 3
-    cols = 3
-    cards_on_page = rows * cols
-    total_pages = int(math.ceil(len(cards) / cards_on_page))
-    pageno = 0
-    for page in grouper(cards, cards_on_page):
-        pageno += 1
-        content = layout.gen_binder_page(page, pageno, total_pages, rows, cols, binder_name=name)
-        file_name = 'binder{:03d}.html'.format(pageno)
-        file_path = os.path.join(output_dir, file_name)
-
-        with open(file_path, 'w') as fp:
-            fp.write(content)
-
-    # copy the images
+    _generate_binder_pages(name, output_dir, cards, 3, 3)
     _log.info("(4/6) Copying image data to output directory...")
-    steps_done = 0
-    # four steps per card because:
-    # 1 for get small, 1 for get large,
-    # 1 for save small, 1 for save large
-    # 1 at the v end is for getting the card back image
-    steps_needed = (len(cards) * 4) + 1
-    show_progress = util.once_every(timedelta(seconds=5), lambda: _log.info(util.progress(steps_done, steps_needed)))
-    assets_path = os.path.join(output_dir, 'assets')
-    try:
-        os.mkdir(assets_path)
-    except FileExistsError:
-        pass  # This is fine
-    images_path = os.path.join(assets_path, 'images')
-    try:
-        os.mkdir(images_path)
-    except FileExistsError:
-        pass  # This is fine
-    for c in cards:
-        image_data_small = api.get_card_image(c.set, c.number, size=SizeLarge)
-        dest_path_small = os.path.join(images_path, image_slug(c, SizeLarge))
-        steps_done += 1
-        show_progress()
-        image_data_full = api.get_card_image(c.set, c.number, size=SizeLarge)
-        dest_path_full = os.path.join(images_path, image_slug(c, SizeLarge))
-        steps_done += 1
-        show_progress()
-        with open(dest_path_small, 'wb') as fp:
-            fp.write(image_data_small)
-        steps_done += 1
-        show_progress()
-        with open(dest_path_full, 'wb') as fp:
-            fp.write(image_data_full)
-        steps_done += 1
-        show_progress()
-    # get back image
-    image_data_back, back_fmt = api.get_card_back_image()
-    dest_path_back = os.path.join(images_path, 'back.{:s}'.format(back_fmt))
-    with open(dest_path_back, 'wb') as fp:
-        fp.write(image_data_back)
-
-    # generate an index page
+    _copy_binder_images(api, output_dir, cards)
     _log.info("(5/6) Generating index pages...")
-    index_content = layout.gen_index_page(binder_name=name)
-    index_path = os.path.join(output_dir, 'index.html')
-    with open(index_path, 'w') as fp:
-        fp.write(index_content)
-
+    _generate_binder_index(name, output_dir)
     _log.info("(6/6) Copying static assets...")
-    stylesheet = layout.gen_stylesheet()
-    dest_path = os.path.join(assets_path, 'styles.css')
-    with open(dest_path, 'w') as fp:
-        fp.write(stylesheet)
+    _copy_binder_assets(output_dir)
+        
     # dump info about the binder to the directory and main store
     binder = qmtgbinder.Binder(path=output_dir, name=name, id=name, cards=cards)
     json_dest = os.path.join(output_dir, 'binder.json')
@@ -208,12 +148,22 @@ def edit_view(store: storage.AutoSaveStore, bid: str, newid: Optional[str]=None,
 
     binder_metadata_file = os.path.join(binder.path, 'binder.json')
     try:
-        qmtgbinder.from_file(binder_metadata_file)
+        curbinder = qmtgbinder.from_file(binder_metadata_file)
     except Exception as e:
         _log.warning("System qmtg records updated successfully, but could not update binder view directory.")
         _log.warning("{!s}".format(e))
         _log.warning("Update path to point to a valid binder view directory to correct this for the future.")
         return
+    else:
+        if curbinder.name != binder.name:
+            # name has been updated; this requires a regeneration
+            _log.info("Name has been updated; regenerating binder view...")
+            _log.info("(1/2) Generating binder pages...")
+            _generate_binder_pages(binder.name, binder.path, curbinder.cards, 3, 3)
+            _log.info("(2/2) Generating index pages...")
+            _generate_binder_index(binder.name, binder.path)
+            _log.info("Binder pages have been updated with new name")
+
     try:
         binder.to_file(binder_metadata_file)
     except Exception as e:
@@ -221,19 +171,34 @@ def edit_view(store: storage.AutoSaveStore, bid: str, newid: Optional[str]=None,
         _log.warning("{!s}".format(e))
         return
 
-    
+def delete_view(store: storage.AutoSaveStore, bid: str, delete_built: bool=False):
+    metadata, exists = store.get('/binders/.meta', conv=lambda x: qmtgbinder.Metadata(**x))
+    if not exists or bid not in metadata.ids:
+        _log.error("`{:s}` is not a binder that is currently defined.".format(bid))
+        return
 
-    
+    binder, exists = store.get('/binders/' + bid, conv=lambda x: qmtgbinder.Binder(**x))
+    if not exists:
+        # something is wrong with the store, remove this entry and report an
+        # error
+        metadata.ids.remove(bid)
+        store.set('/binders/.meta', metadata.to_dict())
+        _log.error("`{:s}` was listed in metadata, but couldn't load record. The entry has now been removed from metadata to repair it.".format(bid))
+        return
 
-    _log.info("Binder ID: {:s}".format(binder_data['id']))
-    _log.info("Name:      {:s}".format(binder_data['name']))
-    _log.info("Location:  {:s}".format(binder_data['path']))
-    if not show_cards:
-        _log.info("Cards:     {:d}".format(len(binder_data['cards'])))
-    else:
-        for cd in binder_data['cards']:
-            c = OwnedCard(*cd)
-            _log.info("* " + tappedout.to_list_line(c))
+    # got binder and meta, now do operations:
+
+    if delete_built:
+        shutil.rmtree(binder.path)
+        _log.info("Deleted built binder view site {:s}".format(binder.path))
+
+    store.batch()
+    store.clear('/binders/' + binder.id)
+    metadata.ids.remove(bid)
+    store.set('/binders/.meta', metadata.to_dict())
+    store.commit()
+    _log.info("Deleted binder view `{:s}` from qmtg's system stores.".format(binder.id))
+
     
 def get_binder_from_store(store: storage.AutoSaveStore, bid: str) -> qmtgbinder.Binder:
     """
@@ -255,4 +220,74 @@ def get_binder_from_store(store: storage.AutoSaveStore, bid: str) -> qmtgbinder.
         store.set('/binders/.meta', metadata.to_dict())
         _log.error("`{:s}` was listed in metadata, but couldn't load record. The entry has now been removed from metadata to repair it.".format(bid))
         return None
+
+    return binder
     
+def _generate_binder_pages(name: str, output_dir: str, cards: Sequence[OwnedCard], rows: int, cols: int):
+    cards_on_page = rows * cols
+    total_pages = int(math.ceil(len(cards) / cards_on_page))
+    pageno = 0
+    for page in grouper(cards, cards_on_page):
+        pageno += 1
+        content = layout.gen_binder_page(page, pageno, total_pages, rows, cols, binder_name=name)
+        file_name = 'binder{:03d}.html'.format(pageno)
+        file_path = os.path.join(output_dir, file_name)
+
+        with open(file_path, 'w') as fp:
+            fp.write(content)
+
+def _copy_binder_images(api: scryfall.ScryfallAgent, output_dir: str, cards: Sequence[OwnedCard]):
+    # copy the images
+    steps_done = 0
+    # four steps per card because:
+    # 1 for get small, 1 for get large,
+    # 1 for save small, 1 for save large
+    # 1 at the v end is for getting the card back image
+    steps_needed = (len(cards) * 4) + 1
+    show_progress = util.once_every(timedelta(seconds=5), lambda: _log.info(util.progress(steps_done, steps_needed)))
+    assets_path = os.path.join(output_dir, 'assets')
+    try:
+        os.mkdir(assets_path)
+    except FileExistsError:
+        pass  # This is fine
+    images_path = os.path.join(assets_path, 'images')
+    try:
+        os.mkdir(images_path)
+    except FileExistsError:
+        pass  # This is fine
+    for c in cards:
+        image_data_small = api.get_card_image(c.set, c.number, size=SizeLarge)
+        dest_path_small = os.path.join(images_path, image_slug(c, SizeLarge))
+        steps_done += 1
+        show_progress()
+        image_data_full = api.get_card_image(c.set, c.number, size=SizeLarge)
+        dest_path_full = os.path.join(images_path, image_slug(c, SizeLarge))
+        steps_done += 1
+        show_progress()
+        with open(dest_path_small, 'wb') as fp:
+            fp.write(image_data_small)
+        steps_done += 1
+        show_progress()
+        with open(dest_path_full, 'wb') as fp:
+            fp.write(image_data_full)
+        steps_done += 1
+        show_progress()
+    # get back image
+    image_data_back, back_fmt = api.get_card_back_image()
+    dest_path_back = os.path.join(images_path, 'back.{:s}'.format(back_fmt))
+    with open(dest_path_back, 'wb') as fp:
+        fp.write(image_data_back)
+
+def _generate_binder_index(name: str, output_dir: str):
+    # generate an index page
+    index_content = layout.gen_index_page(binder_name=name)
+    index_path = os.path.join(output_dir, 'index.html')
+    with open(index_path, 'w') as fp:
+        fp.write(index_content)
+
+def _copy_binder_assets(output_dir: str):
+    assets_path = os.path.join(output_dir, 'assets')
+    stylesheet = layout.gen_stylesheet()
+    dest_path = os.path.join(assets_path, 'styles.css')
+    with open(dest_path, 'w') as fp:
+        fp.write(stylesheet)
