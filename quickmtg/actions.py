@@ -1,7 +1,7 @@
 from datetime import timedelta
 from typing import Any, Dict, Optional
-from .card import OwnedCard, SizeFull, SizeLarge, SizeSmall, image_slug
-from . import scryfall, tappedout, layout, util, cache
+from .card import Card, OwnedCard, SizeFull, SizeLarge, SizeSmall, image_slug
+from . import scryfall, tappedout, layout, util, storage, binder as qmtgbinder
 from .iterutil import grouper
 import logging
 import pprint
@@ -30,7 +30,7 @@ def get_card_image(api: scryfall.ScryfallAgent, set: str, num: str, lang: str, s
     api.get_card_image(set, num, lang, size, back)
     _log.info("card downloaded; check ./.scryfall directory")
 
-def create_view(store: cache.AutoSaveStore, api: scryfall.ScryfallAgent, list_file: str, output_dir: str, name="default"):
+def create_view(store: storage.AutoSaveStore, api: scryfall.ScryfallAgent, list_file: str, output_dir: str, name="default"):
     try:
         os.mkdir(output_dir)
     except FileExistsError:
@@ -144,26 +144,66 @@ def create_view(store: cache.AutoSaveStore, api: scryfall.ScryfallAgent, list_fi
     with open(dest_path, 'w') as fp:
         fp.write(stylesheet)
     # dump info about the binder to the directory and main store
-    id_name = re.sub(r'[^a-z0-9_]', '_', name)
-    binder_data = {
-        'path': output_dir,
-        'name': name,
-        'id': id_name,
-        'cards': list([c.to_dict() for c in cards])
-    }
+    binder = qmtgbinder.Binder(path=output_dir, name=name, id=name, cards=cards)
     json_dest = os.path.join(output_dir, 'binder.json')
-    with open(json_dest, 'w') as fp:
-        json.dump(binder_data, fp, indent=4)
+    binder.to_file(json_dest)
+    
     store.batch()
-    store.set('/binders/' + id_name, binder_data)
+    store.set('/binders/' + binder.id, binder.to_dict())
     binders_meta, exists = store.get('/binders/.meta')
     if not exists:
         binders_meta = {
             'ids': list()
         }
-    binders_meta['ids'].append(id_name)
+    binders_meta['ids'].append(binder.id)
     store.set('/binders/.meta', binders_meta)
     store.commit()
     
     _log.info("Done! Page is now ready at {:s}".format(output_dir + '/index.html'))
+    
+def list_views(store: storage.AutoSaveStore, api: scryfall.ScryfallAgent):
+    metadata, exists = store.get('/binders/.meta')
+    if not exists:
+        _log.info("(No binder views have been created yet)")
+        return
+
+    for id in metadata:
+        _log.info(id)
+
+def show_view(store: storage.AutoSaveStore, bid: str, show_cards: bool=False):
+    bid = re.sub(r'[^a-z0-9_]', '_', bid.lower())
+    binder_data, exists = store.get('/binders/' + bid)
+    if not exists:
+        _log.info("`{:s}` is not a binder that is currently defined.")
+        return
+
+    _log.info("Binder ID: {:s}".format(binder_data['id']))
+    _log.info("Name:      {:s}".format(binder_data['name']))
+    _log.info("Location:  {:s}".format(binder_data['path']))
+    if not show_cards:
+        _log.info("Cards:     {:d}".format(len(binder_data['cards'])))
+    else:
+        for cd in binder_data['cards']:
+            c = OwnedCard(*cd)
+            _log.info("* " + tappedout.to_list_line(c))
+    
+def edit_view(store: storage.AutoSaveStore, bid: str, newid: Optional[str]=None, newname: Optional[str]=None, newpath: Optional[str]=None):
+    bid = re.sub(r'[^a-z0-9_]', '_', bid.lower())
+    binder_data, exists = store.get('/binders/' + bid)
+    if not exists:
+        _log.info("`{:s}` is not a binder that is currently defined.")
+        return
+
+    if newpath is not None:
+        binder_data['']
+
+    _log.info("Binder ID: {:s}".format(binder_data['id']))
+    _log.info("Name:      {:s}".format(binder_data['name']))
+    _log.info("Location:  {:s}".format(binder_data['path']))
+    if not show_cards:
+        _log.info("Cards:     {:d}".format(len(binder_data['cards'])))
+    else:
+        for cd in binder_data['cards']:
+            c = OwnedCard(*cd)
+            _log.info("* " + tappedout.to_list_line(c))
     

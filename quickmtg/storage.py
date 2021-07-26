@@ -1,7 +1,9 @@
 import os.path
 import pickle
 import logging
-from typing import Any, Callable, Dict, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Optional, Tuple, TypeVar, Union
+
+T = TypeVar('T')
 
 _log = logging.getLogger(__name__)
 _log.setLevel(logging.DEBUG)
@@ -61,10 +63,16 @@ class PathCache:
         # now add the actual item
         cur[comps[-1]] = value
 
-    def get(self, path: str) -> Tuple[Any, bool]:
+    def get(self, path: str, conv: Callable[[Any], Any]=None) -> Tuple[Any, bool]:
         """Get the item at the given path. If it doesn't exist, (None, False) is
         returned; otherwise (value, True) is returned where value is the value
-        stored at that path."""
+        stored at that path.
+        
+        :param path: Path to the item to get.
+        :param conv: If set, when an item is found, this function is called on
+        it before it is returned. This function will not be called if the path
+        refers to an object that doesn't yet exist in the store.
+        """
         path = path.lstrip('/')
 
         if path == '':
@@ -84,7 +92,11 @@ class PathCache:
 
         if comps[-1] not in cur:
             return (None, False)
-        return (cur[comps[-1]], True)
+
+        data = cur[comps[-1]]
+        if conv is not None:
+            data = conv(data)
+        return (data, True)
 
     @property
     def store(self) -> dict:
@@ -163,10 +175,17 @@ class FileCache(PathCache):
             super().clear(path)
             raise
     
-    def get(self, path: str) -> Tuple[Tuple[bytes, Any], bool]:
+    def get(self, path: str, conv: Callable[[bytes], T]=None) -> Tuple[Tuple[Union[bytes, T], Any], bool]:
         """Get the file at the given path. If it doesn't exist, (None, False) is
         returned; otherwise ((filebytes, metadata), True) is returned where
-        value is the value stored at that path."""
+        value is the value stored at that path.
+
+        :param path: Path to the item to get.
+        :param conv: If set, when an item is found, this function is called on
+        its bytes and the resulting object is returned. This function will not
+        be called if the path refers to an object that doesn't yet exist in the
+        store.
+        """
         meta, exists = super().get(path)
         if not exists:
             return None, False
@@ -179,9 +198,12 @@ class FileCache(PathCache):
                 data = fp.read(size)
         except FileNotFoundError:
             # remove from cache; file has been tampered with and there is no
-            # point in keeping it in
+            # point in keeping it in records
             super().clear(path)
             return None, False
+
+        if conv is not None:
+            data = conv(data)
         
         return (data, meta), True
 
@@ -262,11 +284,17 @@ class AutoSaveStore:
         if not self._batch:
             self.save()
 
-    def get(self, path: str) -> Tuple[Any, bool]:
+    def get(self, path: str, conv: Callable[[Any], Any]=None) -> Tuple[Any, bool]:
         """Get the item at the given path. If it doesn't exist, (None, False) is
         returned; otherwise (value, True) is returned where value is the value
-        stored at that path."""
-        return self._cache.get(path)
+        stored at that path.
+
+        :param path: Path to the item to get.
+        :param conv: If set, when an item is found, this function is called on
+        it before it is returned. This function will not be called if the path
+        refers to an object that doesn't yet exist in the store.
+        """
+        return self._cache.get(path, conv)
 
 
 def _recurse(leaf_fn: Callable[[str, Any], Any], obj: Union[str, Dict[str, Any]], cur_path: str):

@@ -1,5 +1,5 @@
-from quickmtg.actions import search_cards, show_card, get_card_image, create_view
-from quickmtg import scryfall, cache
+from quickmtg.actions import search_cards, show_card, get_card_image, create_view, list_views
+from quickmtg import scryfall, storage
 import sys
 import pprint
 import logging
@@ -27,7 +27,7 @@ def main():
 
 def _parse_cli_and_run():
     api: scryfall.ScryfallAgent = None
-    store: cache.AutoSaveStore = None
+    store: storage.AutoSaveStore = None
     default_home_path = os.path.join(os.path.expanduser("~"), '.qmtg')
     
     parser = argparse.ArgumentParser(description="MTG library organizer")
@@ -42,11 +42,16 @@ def _parse_cli_and_run():
     view_subs = view_parser.add_subparsers(description="Action on views", metavar="ACTION", dest='cmdaction')
     view_subs.required = True
 
+    # View listing
+    view_list_parser = view_subs.add_parser('list', help='List out the IDs of every binder view that exists on the system.', description='List all current binder views')
+    view_list_parser.set_defaults(func=lambda ns: list_views(store, api))
+
     # View creation
     view_create_parser = view_subs.add_parser('create', help='Create a new binder view from the given owned cards list. HTML pages containing the binder are output to a directory, and an index.html is created as the starting point for viewing the binder.', description='Create a new binder view.')
+    view_create_parser.add_argument('-n', '--name', help="what to call the name", default="default")
     view_create_parser.add_argument('input_list', help='The file to parse for the cards in it. Must contain a list in tappedout.net board format text, which is known to sometimes be not perfect.')
     view_create_parser.add_argument('output_dir', help="The directory to store the output files in. Will be created if it doesn't already exist.")
-    view_create_parser.set_defaults(func=lambda ns: create_view(store, api, ns.input_list, ns.output_dir))
+    view_create_parser.set_defaults(func=lambda ns: create_view(store, api, ns.input_list, ns.output_dir, name=ns.name))
 
     # Card actions
     card_parser = subparsers.add_parser('card', help='Perform an action against the card API.', description="Card lookup actions.")
@@ -86,7 +91,7 @@ def _parse_cli_and_run():
     cachepath = os.path.join(args.qmtg_home, 'scryfall.p')
     filepath = os.path.join(args.qmtg_home, 'filestore')
     api = scryfall.ScryfallAgent('api.scryfall.com', pretty=False, cachefile=cachepath, file_home=filepath)
-    store = cache.AutoSaveStore(os.path.join(args.qmtg_home, 'qmtp.p'))
+    store = storage.AutoSaveStore(os.path.join(args.qmtg_home, 'qmtp.p'))
     args.func(args)
 
 class _ExactLevelFilter(object):

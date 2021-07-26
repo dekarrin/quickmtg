@@ -4,7 +4,7 @@ import logging
 import uuid
 from .card import Card, Face
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
-from . import http, card, cache
+from . import http, card, storage
 
 
 _BACK_IMAGE_URI = 'https://c2.scryfall.com/file/scryfall-errors/missing.jpg'
@@ -87,8 +87,8 @@ class ScryfallAgent:
         self._http = http.HttpAgent(host, ssl=True, antiflood_secs=0.4, ignored_errors=[400, 401, 403, 404, 422, 500], log_full_response=False)
         self._pretty_response = pretty
         self._cachefile = cachefile
-        self._cache = cache.PathCache()
-        self._filestore = cache.FileCache(file_home)
+        self._cache = storage.PathCache()
+        self._filestore = storage.FileCache(file_home)
         
         try:
             with open(cachefile, 'rb') as fp:
@@ -97,8 +97,8 @@ class ScryfallAgent:
                 data['requests'] = data
                 data['files'] = dict()
 
-            self._cache = cache.PathCache(existing_store=data['requests'])
-            self._filestore = cache.FileCache(file_home, existing_store=data['files'])
+            self._cache = storage.PathCache(existing_store=data['requests'])
+            self._filestore = storage.FileCache(file_home, existing_store=data['files'])
         except:
             _log.warn("couldn't load cache file; a new cache will be started")
             # start one so we dont get another warning
