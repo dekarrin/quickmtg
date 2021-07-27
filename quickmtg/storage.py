@@ -223,6 +223,7 @@ class AutoSaveStore:
         """
         self.path = path
         self._cache = PathCache()
+        self._batch = False
 
         try:
             with open(path, 'rb') as fp:

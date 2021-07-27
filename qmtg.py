@@ -62,16 +62,17 @@ def _parse_cli_and_run():
     view_edit_parser = view_subs.add_parser('edit', help='Edits properties of a binder. This can be used to, for example, update QMTG tracking with the location of a moved view binder directory.', description='Edit properties of a binder view')
     view_edit_parser.add_argument('binder', help="The ID of the binder to edit")
     view_edit_parser.add_argument('--id', help="A new ID to set for the binder.")
-    view_edit_parser.add_argument('--name', help="A new name to set for the binder.")
+    view_edit_parser.add_argument('-n', '--name', help="A new name to set for the binder.")
     view_edit_parser.add_argument('--path', help="A new directory path to set for the binder.")
     view_edit_parser.set_defaults(func=lambda ns: edit_view(store, ns.binder, ns.id, ns.name, ns.path))
 
     # View creation
     view_create_parser = view_subs.add_parser('create', help='Create a new binder view from the given owned cards list. HTML pages containing the binder are output to a directory, and an index.html is created as the starting point for viewing the binder.', description='Create a new binder view.')
-    view_create_parser.add_argument('-n', '--name', help="what to call the name", default="default")
+    view_create_parser.add_argument('-n', '--name', help="what to call the binder view")
+    view_create_parser.add_argument('--id', help="An ID to internally call the binder")
     view_create_parser.add_argument('input_list', help='The file to parse for the cards in it. Must contain a list in tappedout.net board format text, which is known to sometimes be not perfect.')
     view_create_parser.add_argument('output_dir', help="The directory to store the output files in. Will be created if it doesn't already exist.")
-    view_create_parser.set_defaults(func=lambda ns: create_view(store, api, ns.input_list, ns.output_dir, name=ns.name))
+    view_create_parser.set_defaults(func=lambda ns: create_view(store, api, ns.input_list, ns.output_dir, name=ns.name, id=ns.id))
 
     # Card actions
     card_parser = subparsers.add_parser('card', help='Perform an action against the card API.', description="Card lookup actions.")

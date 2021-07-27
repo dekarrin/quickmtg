@@ -17,9 +17,9 @@ while (( "$#" )); do
 	  echo "not actually validate the output. Options are available to select"
       echo "specific tests."
       echo ''
-	  echo "Flags:"
-	  echo '  -h, --help                      Show this help and exit'
-	  echo '  -t, --test "test_name"          Give the test to execute. If not'
+      echo "Flags:"
+      echo '  -h, --help                      Show this help and exit'
+      echo '  -t, --test "test_name"          Give the test to execute. If not'
       echo '                                  given, all tests are glu88in'
       echo '                                  selected, which could 8e'
       echo '                                  undesiria8u88le! 8ut usually is'
@@ -30,12 +30,12 @@ while (( "$#" )); do
       echo '                                   * smallbinder'
       echo '                                   * medbinder'
       echo ''
-	  echo '      --                          Flag end marker; no flags after'
+      echo '      --                          Flag end marker; no flags after'
       echo '                                  this will be parsed. you could use'
       echo '                                  it in case you have args that look'
       echo '                                  like options, glu8!'
-	  exit 0
-	  ;;
+      exit 0
+	    ;;
     --) # end argument parsing
       shift
       break

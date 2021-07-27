@@ -31,7 +31,20 @@ def get_card_image(api: scryfall.ScryfallAgent, set: str, num: str, lang: str, s
     api.get_card_image(set, num, lang, size, back)
     _log.info("card downloaded; check ./.scryfall directory")
 
-def create_view(store: storage.AutoSaveStore, api: scryfall.ScryfallAgent, list_file: str, output_dir: str, name="default"):
+def create_view(store: storage.AutoSaveStore, api: scryfall.ScryfallAgent, list_file: str, output_dir: str, name: str=None, id: str=None):
+    id_name = name
+    if id is not None:
+        id_name = id
+    if name is None and id_name is None:
+        name = "default"
+        id_name = name
+        meta, exists = store.get('/binders/.meta', conv=lambda x: qmtgbinder.Metadata(**x))
+        if exists:
+            num = 0
+            while id_name in meta.ids:
+                num += 1
+                id_name = name + '_' + str(num)
+    
     if name == '':
         _log.error("Can't create a binder with a blank name; either give a value or allow default to be set.")
         return
@@ -87,8 +100,9 @@ def create_view(store: storage.AutoSaveStore, api: scryfall.ScryfallAgent, list_
     _log.info("(6/6) Copying static assets...")
     _copy_binder_assets(output_dir)
         
+    # if ID is default, make sure we dont override another
     # dump info about the binder to the directory and main store
-    binder = qmtgbinder.Binder(path=output_dir, name=name, id=name, cards=cards)
+    binder = qmtgbinder.Binder(path=output_dir, name=name, id=id_name, cards=cards)
     json_dest = os.path.join(output_dir, 'binder.json')
     binder.to_file(json_dest)
     
@@ -101,11 +115,11 @@ def create_view(store: storage.AutoSaveStore, api: scryfall.ScryfallAgent, list_
     store.set('/binders/.meta', binders_meta.to_dict())
     store.commit()
     
-    _log.info("Done! Binder view is now ready at {:s}".format(output_dir + '/index.html'))
+    _log.info("Done! Binder view `{:s}` is now ready at {:s}".format(binder.id, output_dir + '/index.html'))
     
 def list_views(store: storage.AutoSaveStore, api: scryfall.ScryfallAgent):
     metadata, exists = store.get('/binders/.meta', conv=lambda x: qmtgbinder.Metadata(**x))
-    if not exists:
+    if not exists or len(metadata.ids) < 1:
         _log.info("(No binder views have been created yet)")
         return
 
