@@ -103,20 +103,17 @@ class Metadata:
         of this Metadata, and if passed in the spread output of to_dict(), will
         recreate the original Metadata.
         """
-        self.ids: List[str] = list()
+        self.ids: List[str] = set()
 
         if 'ids' in kwargs:
-            self.ids = list(kwargs['ids'])
+            self.ids = set(kwargs['ids'])
 
     def __eq__(self, other) -> bool:
         if not isinstance(other, Metadata):
             return False
 
-        if len(self.ids) != len(other.ids):
+        if self.ids != other.ids:
             return False
-        for my_id, other_id in zip(self.ids, other.ids):
-            if my_id != other_id:
-                return False
         
         return True
 

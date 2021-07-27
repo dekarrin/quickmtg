@@ -111,7 +111,7 @@ def create_view(store: storage.AutoSaveStore, api: scryfall.ScryfallAgent, list_
     binders_meta, exists = store.get('/binders/.meta', conv=lambda x: qmtgbinder.Metadata(**x))
     if not exists:
         binders_meta = qmtgbinder.Metadata()
-    binders_meta.ids.append(binder.id)
+    binders_meta.ids.add(binder.id)
     store.set('/binders/.meta', binders_meta.to_dict())
     store.commit()
     
