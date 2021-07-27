@@ -11,10 +11,10 @@ while (( "$#" )); do
       test_name="$2"
       shift 2
       ;;
-	-h|--help)
-	  echo "usage: $0 [<flags>]"
-	  echo "Runs tests. Only tests currently is whether it runs without error,"
-	  echo "not actually validate the output. Options are available to select"
+    -h|--help)
+      echo "usage: $0 [<flags>]"
+      echo "Runs tests. Only tests currently is whether it runs without error,"
+      echo "not actually validate the output. Options are available to select"
       echo "specific tests."
       echo ''
       echo "Flags:"
