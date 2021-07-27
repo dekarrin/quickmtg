@@ -1,3 +1,4 @@
+from quickmtg import binder as qmtgbinder
 from quickmtg.actions import delete_view, edit_view, search_cards, show_card, get_card_image, create_view, list_views, show_view
 from quickmtg import scryfall, storage
 import sys
@@ -112,7 +113,9 @@ def _parse_cli_and_run():
     cachepath = os.path.join(args.qmtg_home, 'scryfall.p')
     filepath = os.path.join(args.qmtg_home, 'filestore')
     api = scryfall.ScryfallAgent('api.scryfall.com', pretty=False, cachefile=cachepath, file_home=filepath)
-    store = storage.AutoSaveStore(os.path.join(args.qmtg_home, 'qmtp.p'))
+    store = storage.AutoSaveObjectStore(os.path.join(args.qmtg_home, 'qmtp.p'))
+    store.register(qmtgbinder.Binder, qmtgbinder.Binder.to_dict, lambda d: qmtgbinder.Binder(**d))
+    store.register(qmtgbinder.Metadata, qmtgbinder.Metadata.to_dict, lambda d: qmtgbinder.Metadata(**d))
     args.func(args)
 
 class _ExactLevelFilter(object):

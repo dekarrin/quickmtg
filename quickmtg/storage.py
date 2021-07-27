@@ -1,9 +1,11 @@
 import os.path
 import pickle
 import logging
-from typing import Any, Callable, Dict, Optional, Tuple, TypeVar, Union
+from typing import Any, Callable, Dict, Optional, Tuple, Type, TypeVar, Union
 
 T = TypeVar('T')
+T1 = TypeVar('T1')
+T2 = TypeVar('T2')
 
 _log = logging.getLogger(__name__)
 _log.setLevel(logging.DEBUG)
@@ -285,8 +287,8 @@ class AutoSaveStore:
         if not self._batch:
             self.save()
 
-    def get(self, path: str, conv: Callable[[Any], Any]=None) -> Tuple[Any, bool]:
-        """Get the item at the given path. If it doesn't exist, (None, False) is
+    def get(self, path: str, conv: Callable[[Any], Any]=None, default=None) -> Tuple[Any, bool]:
+        """Get the item at the given path. If it doesn't exist, (default, False) is
         returned; otherwise (value, True) is returned where value is the value
         stored at that path.
 
@@ -295,7 +297,112 @@ class AutoSaveStore:
         it before it is returned. This function will not be called if the path
         refers to an object that doesn't yet exist in the store.
         """
-        return self._cache.get(path, conv)
+        data, exists = self._cache.get(path, conv)
+        if not exists:
+            return default, False
+        return data, True
+
+
+class AutoSaveObjectStore(AutoSaveStore):
+    """
+    Store that automatically saves whenever it is updated and knows about the
+    types of objects in it. Data points are stored in path-like hierarchy as is
+    the case with PathCache. Defaults can also be modified on a per-type level.
+    """
+    def __init__(self, path: str):
+        super().__init__(path)
+        self.registered_types: Dict[str, Dict]
+
+    def register(self,
+        type: Type,
+        to_storage: Callable[[T1], T2],
+        from_storage: Callable[[T2], T1]
+    ):
+        """
+        Register a type with automatic conversion (and automatic defaults, if
+        wanted.) From that point forward, calls to get(X, ...) and set(X, ...)
+        where X is the type name will cause automatic type conversion using the
+        functions specified.
+
+        :param type: What the type is. Note - this is tested with isinstance; if
+        a type hierarchy is created and a subtype AND its parent type are added,
+        this could lead to unexpected results.
+        :param to_storage: Function that accepts an object of the given type and
+        returns a serializable object suitable for storage in the store (usually
+        a dict is fine as long as it contains only native python objects,
+        recursively.)
+        :param from_storage: Function that accepts the output of to_storage and
+        rebuilds the object.
+        """
+        self.registered_types[type] = {
+            'to': to_storage,
+            'from': from_storage
+        }
+
+    def unregister(self, type: Type):
+        """
+        Remove a registration previously added with register().
+
+        :param type: The type registration to remove. If it wasn't added,
+        this method has no effect.
+        """
+        del self.registered_types[type]
+    
+    def set(self, path: str, value: Any):
+        """Set the value at the given path. If it doesn't yet exist, it is
+        created. If value is an instance of one of the registered types, extra
+        meta-data is included to show this in object retrieval."""
+        for t in self.registered_types:
+            type_info = self.registered_types[t]
+            if isinstance(value, t):
+                conv_value = type_info['to'](value)
+                value = {
+                    '.meta': '_OBJ_STORE__OBJ_',
+                    '.type': t,
+                    '.value': conv_value
+                }
+                break
+        
+        self._cache.set(path, value)
+        if not self._batch:
+            self.save()
+
+    def get(self, path: str, conv: Callable[[Any], Any]=None, default=None) -> Tuple[Any, bool]:
+        """Get the item at the given path. If it doesn't exist, (default, False) is
+        returned; otherwise (value, True) is returned where value is the value
+        stored at that path. If a registered type is being retrieved and it
+        exists, it will be auto-converted.
+
+        :param path: Path to the item to get.
+        :param conv: If set, when an item is found, this function is called on
+        it before it is returned. This function will not be called if the path
+        refers to an object that doesn't yet exist in the store. If a registered
+        type is being retrieved, this function is called AFTER the object is
+        converted back into its non-serialized form.
+        """
+
+        data, exists = self._cache.get(path)
+        if not exists:
+            return (default, False)
+
+        if isinstance(data, dict):
+            if data.get('.meta', '') == '_OBJ_STORE__OBJ_':
+                # we have a registered type
+                stored_val = data['.value']
+                stored_type = data['.type']
+                if stored_type not in self.registered_types:
+                    # for whatever reason, it is no longer a registered type.
+                    # return the converted value and let the user deal with it
+                    data = stored_val
+                else:
+                    data = self.registered_types[stored_type]['from'](data)
+        
+        if conv is not None:
+            data = conv(data)
+
+        return data, True
+
+    
 
 
 def _recurse(leaf_fn: Callable[[str, Any], Any], obj: Union[str, Dict[str, Any]], cur_path: str):

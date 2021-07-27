@@ -31,14 +31,14 @@ def get_card_image(api: scryfall.ScryfallAgent, set: str, num: str, lang: str, s
     api.get_card_image(set, num, lang, size, back)
     _log.info("card downloaded; check ./.scryfall directory")
 
-def create_view(store: storage.AutoSaveStore, api: scryfall.ScryfallAgent, list_file: str, output_dir: str, name: str=None, id: str=None):
+def create_view(store: storage.AutoSaveObjectStore, api: scryfall.ScryfallAgent, list_file: str, output_dir: str, name: str=None, id: str=None):
     id_name = name
     if id is not None:
         id_name = id
     if name is None and id_name is None:
         name = "default"
         id_name = name
-        meta, exists = store.get('/binders/.meta', conv=lambda x: qmtgbinder.Metadata(**x))
+        meta, exists = store.get('/binders/.meta')
         if exists:
             num = 0
             while id_name in meta.ids:
@@ -107,18 +107,16 @@ def create_view(store: storage.AutoSaveStore, api: scryfall.ScryfallAgent, list_
     binder.to_file(json_dest)
     
     store.batch()
-    store.set('/binders/' + binder.id, binder.to_dict())
-    binders_meta, exists = store.get('/binders/.meta', conv=lambda x: qmtgbinder.Metadata(**x))
-    if not exists:
-        binders_meta = qmtgbinder.Metadata()
+    store.set('/binders/' + binder.id, binder)
+    binders_meta, _ = store.get('/binders/.meta', default=qmtgbinder.Metadata())
     binders_meta.ids.add(binder.id)
-    store.set('/binders/.meta', binders_meta.to_dict())
+    store.set('/binders/.meta', binders_meta)
     store.commit()
     
     _log.info("Done! Binder view `{:s}` is now ready at {:s}".format(binder.id, output_dir + '/index.html'))
     
-def list_views(store: storage.AutoSaveStore, api: scryfall.ScryfallAgent):
-    metadata, exists = store.get('/binders/.meta', conv=lambda x: qmtgbinder.Metadata(**x))
+def list_views(store: storage.AutoSaveObjectStore, api: scryfall.ScryfallAgent):
+    metadata, exists = store.get('/binders/.meta')
     if not exists or len(metadata.ids) < 1:
         _log.info("(No binder views have been created yet)")
         return
@@ -126,10 +124,10 @@ def list_views(store: storage.AutoSaveStore, api: scryfall.ScryfallAgent):
     for id in metadata.ids:
         _log.info(id)
 
-def show_view(store: storage.AutoSaveStore, bid: str, show_cards: bool=False):
+def show_view(store: storage.AutoSaveObjectStore, bid: str, show_cards: bool=False):
     binder = get_binder_from_store(store, bid)
     if binder is None:
-        return
+        _log.error("No binder view exists with ID `" + bid + "`")
 
     _log.info("Binder ID: {:s}".format(binder.id))
     _log.info("Name:      {:s}".format(binder.name))
@@ -141,24 +139,32 @@ def show_view(store: storage.AutoSaveStore, bid: str, show_cards: bool=False):
         for c in binder.cards:
             _log.info("* " + tappedout.to_list_line(c))
     
-def edit_view(store: storage.AutoSaveStore, bid: str, newid: Optional[str]=None, newname: Optional[str]=None, newpath: Optional[str]=None):
+def edit_view(store: storage.AutoSaveObjectStore, bid: str, newid: Optional[str]=None, newname: Optional[str]=None, newpath: Optional[str]=None):
     binder = get_binder_from_store(store, bid)
     if binder is None:
-        return
+        _log.error("No binder view exists with ID `" + bid + "`")
     
+    oldid = binder.id
+    updated = False
     if newpath is not None:
+        updated = True
         binder.path = newpath
     if newid is not None:
+        updated = True
         binder.id = newid
         if binder.id == '':
             _log.error("Can't set ID of binder to blank string")
             return
     if newname is not None:
+        updated = True
         binder.name = newname
         if binder.name == '':
             _log.error("Can't set name of binder to blank string")
 
-    store.set('/binders/' + binder.id, binder.to_dict())
+    if not updated:
+        return
+    
+    store.set('/binders/' + binder.id)
 
     binder_metadata_file = os.path.join(binder.path, 'binder.json')
     try:
@@ -185,23 +191,22 @@ def edit_view(store: storage.AutoSaveStore, bid: str, newid: Optional[str]=None,
         _log.warning("{!s}".format(e))
         return
 
-def delete_view(store: storage.AutoSaveStore, bid: str, delete_built: bool=False):
-    metadata, exists = store.get('/binders/.meta', conv=lambda x: qmtgbinder.Metadata(**x))
-    if not exists or bid not in metadata.ids:
+def delete_view(store: storage.AutoSaveObjectStore, bid: str, delete_built: bool=False):
+    metadata, _ = store.get('/binders/.meta', default=qmtgbinder.Metadata())
+    if bid not in metadata.ids:
         _log.error("`{:s}` is not a binder that is currently defined.".format(bid))
         return
 
-    binder, exists = store.get('/binders/' + bid, conv=lambda x: qmtgbinder.Binder(**x))
+    binder, exists = store.get('/binders/' + bid)
     if not exists:
         # something is wrong with the store, remove this entry and report an
         # error
         metadata.ids.remove(bid)
-        store.set('/binders/.meta', metadata.to_dict())
+        store.set('/binders/.meta', metadata)
         _log.error("`{:s}` was listed in metadata, but couldn't load record. The entry has now been removed from metadata to repair it.".format(bid))
         return
 
     # got binder and meta, now do operations:
-
     if delete_built:
         shutil.rmtree(binder.path)
         _log.info("Deleted built binder view site {:s}".format(binder.path))
@@ -209,29 +214,29 @@ def delete_view(store: storage.AutoSaveStore, bid: str, delete_built: bool=False
     store.batch()
     store.clear('/binders/' + binder.id)
     metadata.ids.remove(bid)
-    store.set('/binders/.meta', metadata.to_dict())
+    store.set('/binders/.meta', metadata)
     store.commit()
     _log.info("Deleted binder view `{:s}` from qmtg's system stores.".format(binder.id))
 
     
-def get_binder_from_store(store: storage.AutoSaveStore, bid: str) -> qmtgbinder.Binder:
+def get_binder_from_store(store: storage.AutoSaveObjectStore, bid: str) -> qmtgbinder.Binder:
     """
     Get binder from store, checking metadata to ensure all is well with it.
 
     Returns None if the binder could not be obtained. Caller should not print
     any message in this case as it has already been printed.
     """
-    metadata, exists = store.get('/binders/.meta', conv=lambda x: qmtgbinder.Metadata(**x))
-    if not exists or bid not in metadata.ids:
+    metadata, _ = store.get('/binders/.meta', default=qmtgbinder.Metadata())
+    if bid not in metadata.ids:
         _log.error("`{:s}` is not a binder that is currently defined.".format(bid))
         return None
 
-    binder, exists = store.get('/binders/' + bid, conv=lambda x: qmtgbinder.Binder(**x))
+    binder, exists = store.get('/binders/' + bid)
     if not exists:
         # something is wrong with the store, remove this entry and report an
         # error
         metadata.ids.remove(bid)
-        store.set('/binders/.meta', metadata.to_dict())
+        store.set('/binders/.meta', metadata)
         _log.error("`{:s}` was listed in metadata, but couldn't load record. The entry has now been removed from metadata to repair it.".format(bid))
         return None
 
