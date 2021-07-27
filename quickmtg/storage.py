@@ -311,7 +311,7 @@ class AutoSaveObjectStore(AutoSaveStore):
     """
     def __init__(self, path: str):
         super().__init__(path)
-        self.registered_types: Dict[str, Dict]
+        self.registered_types: Dict[str, Dict] = dict()
 
     def register(self,
         type: Type,
@@ -395,7 +395,7 @@ class AutoSaveObjectStore(AutoSaveStore):
                     # return the converted value and let the user deal with it
                     data = stored_val
                 else:
-                    data = self.registered_types[stored_type]['from'](data)
+                    data = self.registered_types[stored_type]['from'](stored_val)
         
         if conv is not None:
             data = conv(data)
