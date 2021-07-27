@@ -1,4 +1,4 @@
-from quickmtg.actions import search_cards, show_card, get_card_image, create_view, list_views
+from quickmtg.actions import delete_view, edit_view, search_cards, show_card, get_card_image, create_view, list_views, show_view
 from quickmtg import scryfall, storage
 import sys
 import pprint
@@ -45,6 +45,26 @@ def _parse_cli_and_run():
     # View listing
     view_list_parser = view_subs.add_parser('list', help='List out the IDs of every binder view that exists on the system.', description='List all current binder views')
     view_list_parser.set_defaults(func=lambda ns: list_views(store, api))
+
+    # View showing
+    view_show_parser = view_subs.add_parser('show', help='Shows all information on a binder view, including name, path, and number of cards in the view.', description='Show info on a binder view')
+    view_show_parser.add_argument('binder', help="The ID of the binder to show info on")
+    view_show_parser.add_argument('-c', '--cards', help="Give a complete list of cards instead of just giving a count.", action='store_true')
+    view_show_parser.set_defaults(func=lambda ns: show_view(store, ns.binder, ns.cards))
+
+    # View deleting
+    view_delete_parser = view_subs.add_parser('delete', help='Removes a binder view from QMTG tracking. If specified, also deletes the built binder view.', description='Remove a binder view')
+    view_delete_parser.add_argument('binder', help="The ID of the binder to delete")
+    view_delete_parser.add_argument('--delete-directory', help="Delete the entire built binder view files on disk in addition to removing the binder from tracking.", action='store_true')
+    view_delete_parser.set_defaults(func=lambda ns: delete_view(store, ns.binder, ns.delete_directory))
+    
+    # View editing
+    view_edit_parser = view_subs.add_parser('edit', help='Edits properties of a binder. This can be used to, for example, update QMTG tracking with the location of a moved view binder directory.', description='Edit properties of a binder view')
+    view_edit_parser.add_argument('binder', help="The ID of the binder to edit")
+    view_edit_parser.add_argument('--id', help="A new ID to set for the binder.")
+    view_edit_parser.add_argument('--name', help="A new name to set for the binder.")
+    view_edit_parser.add_argument('--path', help="A new directory path to set for the binder.")
+    view_edit_parser.set_defaults(func=lambda ns: edit_view(store, ns.binder, ns.id, ns.name, ns.path))
 
     # View creation
     view_create_parser = view_subs.add_parser('create', help='Create a new binder view from the given owned cards list. HTML pages containing the binder are output to a directory, and an index.html is created as the starting point for viewing the binder.', description='Create a new binder view.')
