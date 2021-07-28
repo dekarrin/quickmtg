@@ -101,7 +101,7 @@ def list_all(store: storage.AutoSaveObjectStore, api: scryfall.ScryfallAgent):
         _log.info("(No binder views have been created yet)")
         return
 
-    for id in metadata.ids:
+    for id in sorted(metadata.ids):
         _log.info(id)
 
 def show(store: storage.AutoSaveObjectStore, bid: str, show_cards: bool=False):
