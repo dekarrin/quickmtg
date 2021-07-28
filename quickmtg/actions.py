@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import Any, Dict, Optional, Sequence
+from typing import Any, Dict, Optional, Sequence, Tuple
 from .card import Card, OwnedCard, SizeFull, SizeLarge, SizeSmall, image_slug
 from . import scryfall, tappedout, layout, util, storage, binder as qmtgbinder
 from .iterutil import grouper
@@ -116,8 +116,8 @@ def create_view(store: storage.AutoSaveObjectStore, api: scryfall.ScryfallAgent,
     _log.info("Done! Binder view `{:s}` is now ready at {:s}".format(binder.id, output_dir + '/index.html'))
     
 def list_views(store: storage.AutoSaveObjectStore, api: scryfall.ScryfallAgent):
-    metadata, exists = store.get('/binders/.meta')
-    if not exists or len(metadata.ids) < 1:
+    metadata, _ = store.get('/binders/.meta', default=qmtgbinder.Metadata())
+    if len(metadata.ids) < 1:
         _log.info("(No binder views have been created yet)")
         return
 
@@ -125,9 +125,9 @@ def list_views(store: storage.AutoSaveObjectStore, api: scryfall.ScryfallAgent):
         _log.info(id)
 
 def show_view(store: storage.AutoSaveObjectStore, bid: str, show_cards: bool=False):
-    binder = get_binder_from_store(store, bid)
+    binder, _ = get_binder_from_store(store, bid)
     if binder is None:
-        _log.error("No binder view exists with ID `" + bid + "`")
+        return
 
     _log.info("Binder ID: {:s}".format(binder.id))
     _log.info("Name:      {:s}".format(binder.name))
@@ -140,9 +140,9 @@ def show_view(store: storage.AutoSaveObjectStore, bid: str, show_cards: bool=Fal
             _log.info("* " + tappedout.to_list_line(c))
     
 def edit_view(store: storage.AutoSaveObjectStore, bid: str, newid: Optional[str]=None, newname: Optional[str]=None, newpath: Optional[str]=None):
-    binder = get_binder_from_store(store, bid)
+    binder, _ = get_binder_from_store(store, bid)
     if binder is None:
-        _log.error("No binder view exists with ID `" + bid + "`")
+        return
     
     oldid = binder.id
     updated = False
@@ -166,9 +166,9 @@ def edit_view(store: storage.AutoSaveObjectStore, bid: str, newid: Optional[str]
     
     store.set('/binders/' + binder.id)
 
-    binder_metadata_file = os.path.join(binder.path, 'binder.json')
+    binder_data_file = os.path.join(binder.path, 'binder.json')
     try:
-        curbinder = qmtgbinder.from_file(binder_metadata_file)
+        curbinder = qmtgbinder.from_file(binder_data_file)
     except Exception as e:
         _log.warning("System qmtg records updated successfully, but could not update binder view directory.")
         _log.warning("{!s}".format(e))
@@ -185,25 +185,15 @@ def edit_view(store: storage.AutoSaveObjectStore, bid: str, newid: Optional[str]
             _log.info("Binder pages have been updated with new name")
 
     try:
-        binder.to_file(binder_metadata_file)
+        binder.to_file(binder_data_file)
     except Exception as e:
         _log.warning("System qmtg records updated successfully, but could not update binder view directory.")
         _log.warning("{!s}".format(e))
         return
 
 def delete_view(store: storage.AutoSaveObjectStore, bid: str, delete_built: bool=False):
-    metadata, _ = store.get('/binders/.meta', default=qmtgbinder.Metadata())
-    if bid not in metadata.ids:
-        _log.error("`{:s}` is not a binder that is currently defined.".format(bid))
-        return
-
-    binder, exists = store.get('/binders/' + bid)
-    if not exists:
-        # something is wrong with the store, remove this entry and report an
-        # error
-        metadata.ids.remove(bid)
-        store.set('/binders/.meta', metadata)
-        _log.error("`{:s}` was listed in metadata, but couldn't load record. The entry has now been removed from metadata to repair it.".format(bid))
+    binder, metadata = get_binder_from_store(store, bid)
+    if binder is None:
         return
 
     # got binder and meta, now do operations:
@@ -219,17 +209,22 @@ def delete_view(store: storage.AutoSaveObjectStore, bid: str, delete_built: bool
     _log.info("Deleted binder view `{:s}` from qmtg's system stores.".format(binder.id))
 
     
-def get_binder_from_store(store: storage.AutoSaveObjectStore, bid: str) -> qmtgbinder.Binder:
+def get_binder_from_store(store: storage.AutoSaveObjectStore, bid: str) -> Tuple[qmtgbinder.Binder, qmtgbinder.Metadata]:
     """
     Get binder from store, checking metadata to ensure all is well with it.
 
-    Returns None if the binder could not be obtained. Caller should not print
-    any message in this case as it has already been printed.
+    Returns (binder, metadata) where the binder is specified binder and the
+    metadata is the binder metadata object.
+
+    Returns (None, metadata) if the binder could not be obtained. Caller should
+    not print any message in this case as it has already been printed. metadata
+    will always be returned as non-None even if binder is None. If metadata
+    didn't previously exist in the store, an empty metadata object is returned.
     """
     metadata, _ = store.get('/binders/.meta', default=qmtgbinder.Metadata())
     if bid not in metadata.ids:
         _log.error("`{:s}` is not a binder that is currently defined.".format(bid))
-        return None
+        return None, metadata
 
     binder, exists = store.get('/binders/' + bid)
     if not exists:
@@ -238,9 +233,9 @@ def get_binder_from_store(store: storage.AutoSaveObjectStore, bid: str) -> qmtgb
         metadata.ids.remove(bid)
         store.set('/binders/.meta', metadata)
         _log.error("`{:s}` was listed in metadata, but couldn't load record. The entry has now been removed from metadata to repair it.".format(bid))
-        return None
+        return None, metadata
 
-    return binder
+    return binder, metadata
     
 def _generate_binder_pages(name: str, output_dir: str, cards: Sequence[OwnedCard], rows: int, cols: int):
     cards_on_page = rows * cols
