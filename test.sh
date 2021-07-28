@@ -60,16 +60,16 @@ mkdir test_output 2>/dev/null
 echo "Attempting to generate binder views..."
 if [ -z "$test_name" -o "$test_name" = "onebinder" ]; then
   set -x
-  ./qmtg view create testfiles/one_inventory.txt test_output/one_binder || exit $ERR_TEST
+  ./qmtg view create testfiles/one_inventory.txt test_output/one_binder -n "One Binder" || exit $ERR_TEST
   set +x
 fi
 if [ -z "$test_name" -o "$test_name" = "smallbinder" ]; then
   set -x
-  ./qmtg view create testfiles/small_inventory.txt test_output/small_binder || exit $ERR_TEST
+  ./qmtg view create testfiles/small_inventory.txt test_output/small_binder -n "Small Binder"  || exit $ERR_TEST
   set +x
 fi
 if [ -z "$test_name" -o "$test_name" = "medbinder" ]; then
   set -x
-  ./qmtg view create testfiles/medium_inventory.txt test_output/medium_binder || exit $ERR_TEST
+  ./qmtg view create testfiles/medium_inventory.txt test_output/medium_binder -n "Med Binder" || exit $ERR_TEST
   set +x
 fi

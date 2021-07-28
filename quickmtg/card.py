@@ -380,25 +380,28 @@ class OwnedCard(Card):
             return False
         elif self.foil != other.foil:
             return False
+        elif self.count != other.count:
+            return False
         return True
 
     def __hash__(self) -> int:
-        return hash((super().__hash__(), self.condition, self.foil))
+        return hash((super().__hash__(), self.condition, self.foil, self.count))
 
     def __str__(self) -> str:
         fstr = ''
         if self.foil:
             fstr = ' (FOIL)'
-        return 'OwnedCard<{:s} {!r}{:s}>'.format(self.setnum, self.name, fstr)
+        return 'OwnedCard<{:s} {!r}{:s} x{:d}>'.format(self.setnum, self.name, fstr, self.count)
 
     def __repr__(self) -> str:
-        fmt = 'OwnedCard(id={!r}, set={!r}, number={!r}, rarity={!r}, faces={!r}, condition={!r}, foil={!r})'
+        fmt = 'OwnedCard(id={!r}, set={!r}, number={!r}, rarity={!r}, faces={!r}, condition={!r}, foil={!r}, count={!r})'
         return fmt.format(self.id, self.set, self.number, self.rarity, self.faces, self.condition, self.foil)
 
     def to_dict(self) -> Dict[str, Any]:
         d = super().to_dict()
         d['condition'] = self.condition.symbol
         d['foil'] = self.foil
+        d['count'] = self.count
         return d
 
 def image_slug(c: Card, size: Union[Size, str], format: str=None, front: bool=True, lang: str='en') -> str:
