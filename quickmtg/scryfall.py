@@ -1,3 +1,4 @@
+from datetime import time, timedelta
 import os
 import pickle
 import logging
@@ -7,6 +8,7 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 from . import http, card, storage
 
 
+_STATIC_CACHE_TTL = timedelta(days=7)
 _BACK_IMAGE_URI = 'https://c2.scryfall.com/file/scryfall-errors/missing.jpg'
 
 
@@ -103,6 +105,56 @@ class ScryfallAgent:
             _log.warn("couldn't load cache file; a new cache will be started")
             # start one so we dont get another warning
             self._save_cache()
+
+    def get_catalog_creature_types(self) -> List[str]:
+        """
+        Get a current list of all creature types. Cached up to _STATIC_CACHE_TTL
+        amount of time.
+        """
+        return self._get_catalog('creature-types')
+
+    def get_catalog_keyword_abilities(self) -> List[str]:
+        """
+        Get a current list of all keyword abilities. Cached up to _STATIC_CACHE_TTL
+        amount of time.
+        """
+        return self._get_catalog('keyword-abilities')
+
+    def get_catalog_keyword_actions(self) -> List[str]:
+        """
+        Get a current list of all keyword actions. Cached up to _STATIC_CACHE_TTL
+        amount of time.
+        """
+        return self._get_catalog('keyword-actions')
+
+    def _get_catalog(self, catalog_type: str) -> List[str]:
+        cachepath = '/static/' + catalog_type
+        cached, hit = self._cache.get(cachepath)
+        if hit:
+            age = time.now() - cached['retrieval_time']
+            if age > _STATIC_CACHE_TTL:
+                _log.debug('Cache age for {:s} is too old so removing from cache'.format(cachepath))
+                self._cache.clear(cachepath)
+            else:
+                return cached['data']
+
+        _log.debug('Cache miss for {:s}; retrieving from scryfall...'.format(cachepath))
+
+        params = {
+            'pretty': self._pretty_response
+        }
+        
+        status, resp = self._http.request('GET', '/catalog/' + catalog_type, query=params)
+        if status >= 400:
+            err = APIError.parse(resp)
+            raise err
+
+        entries = list(resp['data'])
+        self._cache.set(cachepath, {'retrieval_time': time.now(), 'data': entries})
+        self._save_cache()
+
+        return entries
+
 
     def get_card_by_name(self,
             name: str, fuzzy: bool=False, set_code: Optional[str] = None
