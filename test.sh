@@ -104,7 +104,7 @@ rm -rf "$qmtg_home/qmtg.p"
 echo "Attempting to generate binder views..."
 if [ -z "$test_name" -o "$test_name" = "onebinder" ]; then
   set -x
-  ./qmtg -m "$qmtg_home" view create \
+  ./qmtg -m "$qmtg_home" binder create \
     testfiles/one_inventory.txt \
     "$output_dir/one_binder" \
     -n "One Binder" \
@@ -113,7 +113,7 @@ if [ -z "$test_name" -o "$test_name" = "onebinder" ]; then
 fi
 if [ -z "$test_name" -o "$test_name" = "smallbinder" ]; then
   set -x
-  ./qmtg -m "$qmtg_home" view create \
+  ./qmtg -m "$qmtg_home" binder create \
     testfiles/small_inventory.txt \
     "$output_dir/small_binder" \
     -n "Small Binder"  \
@@ -122,7 +122,7 @@ if [ -z "$test_name" -o "$test_name" = "smallbinder" ]; then
 fi
 if [ -z "$test_name" -o "$test_name" = "medbinder" ]; then
   set -x
-  ./qmtg -m "$qmtg_home" view create \
+  ./qmtg -m "$qmtg_home" binder create \
     testfiles/medium_inventory.txt \
     "$output_dir/medium_binder" \
     -n "Med Binder" \

@@ -31,7 +31,7 @@ def get_card_image(api: scryfall.ScryfallAgent, set: str, num: str, lang: str, s
     api.get_card_image(set, num, lang, size, back)
     _log.info("card downloaded; check ./.scryfall directory")
 
-def create_view(store: storage.AutoSaveObjectStore, api: scryfall.ScryfallAgent, list_file: str, output_dir: str, name: str=None, id: str=None):
+def create_binder(store: storage.AutoSaveObjectStore, api: scryfall.ScryfallAgent, list_file: str, output_dir: str, name: str=None, id: str=None):
     id_name = name
     if id is not None:
         id_name = id
@@ -115,7 +115,7 @@ def create_view(store: storage.AutoSaveObjectStore, api: scryfall.ScryfallAgent,
     
     _log.info("Done! Binder view `{:s}` is now ready at {:s}".format(binder.id, output_dir + '/index.html'))
     
-def list_views(store: storage.AutoSaveObjectStore, api: scryfall.ScryfallAgent):
+def list_binders(store: storage.AutoSaveObjectStore, api: scryfall.ScryfallAgent):
     metadata, _ = store.get('/binders/.meta', default=qmtgbinder.Metadata())
     if len(metadata.ids) < 1:
         _log.info("(No binder views have been created yet)")
@@ -124,7 +124,7 @@ def list_views(store: storage.AutoSaveObjectStore, api: scryfall.ScryfallAgent):
     for id in metadata.ids:
         _log.info(id)
 
-def show_view(store: storage.AutoSaveObjectStore, bid: str, show_cards: bool=False):
+def show_binder(store: storage.AutoSaveObjectStore, bid: str, show_cards: bool=False):
     binder, _ = get_binder_from_store(store, bid)
     if binder is None:
         return
@@ -139,7 +139,7 @@ def show_view(store: storage.AutoSaveObjectStore, bid: str, show_cards: bool=Fal
         for c in binder.cards:
             _log.info("* " + tappedout.to_list_line(c))
     
-def edit_view(store: storage.AutoSaveObjectStore, bid: str, newid: Optional[str]=None, newname: Optional[str]=None, newpath: Optional[str]=None):
+def edit_binder(store: storage.AutoSaveObjectStore, bid: str, newid: Optional[str]=None, newname: Optional[str]=None, newpath: Optional[str]=None):
     binder, _ = get_binder_from_store(store, bid)
     if binder is None:
         return
@@ -191,7 +191,7 @@ def edit_view(store: storage.AutoSaveObjectStore, bid: str, newid: Optional[str]
         _log.warning("{!s}".format(e))
         return
 
-def delete_view(store: storage.AutoSaveObjectStore, bid: str, delete_built: bool=False):
+def delete_binder(store: storage.AutoSaveObjectStore, bid: str, delete_built: bool=False):
     binder, metadata = get_binder_from_store(store, bid)
     if binder is None:
         return
