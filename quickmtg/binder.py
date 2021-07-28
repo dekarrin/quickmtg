@@ -1,5 +1,5 @@
 from .card import Card, OwnedCard
-from typing import Any, Dict, List, Optional, Sequence, Union
+from typing import Any, Dict, List, Optional, Sequence, Set, Union
 import re
 import json
 
@@ -103,7 +103,7 @@ class Metadata:
         of this Metadata, and if passed in the spread output of to_dict(), will
         recreate the original Metadata.
         """
-        self.ids: List[str] = set()
+        self.ids: Set[str] = set()
 
         if 'ids' in kwargs:
             self.ids = set(kwargs['ids'])

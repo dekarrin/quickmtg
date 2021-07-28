@@ -120,7 +120,7 @@ def show(store: storage.AutoSaveObjectStore, bid: str, show_cards: bool=False):
             _log.info("* " + tappedout.to_list_line(c))
     
 def edit(store: storage.AutoSaveObjectStore, bid: str, newid: Optional[str]=None, newname: Optional[str]=None, newpath: Optional[str]=None):
-    binder, _ = _get_binder_from_store(store, bid)
+    binder, metadata = _get_binder_from_store(store, bid)
     if binder is None:
         return
     
@@ -144,7 +144,14 @@ def edit(store: storage.AutoSaveObjectStore, bid: str, newid: Optional[str]=None
     if not updated:
         return
     
-    store.set('/binders/' + binder.id)
+    store.batch()
+    store.set('/binders/' + binder.id, binder)
+    if binder.id != oldid:
+        store.clear('/binders/' + oldid)
+        metadata.ids.remove(oldid)
+        metadata.ids.add(binder.id)
+        store.set('/binders/.meta', metadata)
+    store.commit()
 
     binder_data_file = os.path.join(binder.path, 'binder.json')
     try:
