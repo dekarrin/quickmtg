@@ -1,37 +1,17 @@
 from datetime import timedelta
-from typing import Any, Dict, Optional, Sequence, Tuple
-from .card import Card, OwnedCard, SizeFull, SizeLarge, SizeSmall, image_slug
-from . import scryfall, tappedout, layout, util, storage, binder as qmtgbinder
-from .iterutil import grouper
+from typing import Optional, Sequence, Tuple
+from ..card import OwnedCard, SizeLarge, image_slug
+from .. import scryfall, tappedout, layout, util, storage, binder as qmtgbinder
+from ..iterutil import grouper
 import logging
-import pprint
 import os
-import re
 import math
-import sys
-import json
 import shutil
 
 _log = logging.getLogger(__name__)
 _log.setLevel(logging.DEBUG)
 
-def search_cards(api: scryfall.ScryfallAgent, fuzzy: bool=False, set: str=None, *cards):
-    if len(cards) < 1:
-        raise TypeError("Need to give at least one card to look up")
-
-    for card in cards:
-        repl = api.get_card_by_name(card, fuzzy=fuzzy, set_code=set)
-        _log.info(pprint.pprint(repl))
-    
-def show_card(api: scryfall.ScryfallAgent, set: str, num: str, lang: str):
-    repl = api.get_card_by_num(set, num, lang)
-    _log.info(pprint.pformat(repl))
-    
-def get_card_image(api: scryfall.ScryfallAgent, set: str, num: str, lang: str, size: str, back: bool):
-    api.get_card_image(set, num, lang, size, back)
-    _log.info("card downloaded; check ./.scryfall directory")
-
-def create_binder(store: storage.AutoSaveObjectStore, api: scryfall.ScryfallAgent, list_file: str, output_dir: str, name: str=None, id: str=None):
+def create(store: storage.AutoSaveObjectStore, api: scryfall.ScryfallAgent, list_file: str, output_dir: str, name: str=None, id: str=None):
     id_name = name
     if id is not None:
         id_name = id
@@ -115,7 +95,7 @@ def create_binder(store: storage.AutoSaveObjectStore, api: scryfall.ScryfallAgen
     
     _log.info("Done! Binder view `{:s}` is now ready at {:s}".format(binder.id, output_dir + '/index.html'))
     
-def list_binders(store: storage.AutoSaveObjectStore, api: scryfall.ScryfallAgent):
+def list_all(store: storage.AutoSaveObjectStore, api: scryfall.ScryfallAgent):
     metadata, _ = store.get('/binders/.meta', default=qmtgbinder.Metadata())
     if len(metadata.ids) < 1:
         _log.info("(No binder views have been created yet)")
@@ -124,8 +104,8 @@ def list_binders(store: storage.AutoSaveObjectStore, api: scryfall.ScryfallAgent
     for id in metadata.ids:
         _log.info(id)
 
-def show_binder(store: storage.AutoSaveObjectStore, bid: str, show_cards: bool=False):
-    binder, _ = get_binder_from_store(store, bid)
+def show(store: storage.AutoSaveObjectStore, bid: str, show_cards: bool=False):
+    binder, _ = _get_binder_from_store(store, bid)
     if binder is None:
         return
 
@@ -139,8 +119,8 @@ def show_binder(store: storage.AutoSaveObjectStore, bid: str, show_cards: bool=F
         for c in binder.cards:
             _log.info("* " + tappedout.to_list_line(c))
     
-def edit_binder(store: storage.AutoSaveObjectStore, bid: str, newid: Optional[str]=None, newname: Optional[str]=None, newpath: Optional[str]=None):
-    binder, _ = get_binder_from_store(store, bid)
+def edit(store: storage.AutoSaveObjectStore, bid: str, newid: Optional[str]=None, newname: Optional[str]=None, newpath: Optional[str]=None):
+    binder, _ = _get_binder_from_store(store, bid)
     if binder is None:
         return
     
@@ -191,8 +171,8 @@ def edit_binder(store: storage.AutoSaveObjectStore, bid: str, newid: Optional[st
         _log.warning("{!s}".format(e))
         return
 
-def delete_binder(store: storage.AutoSaveObjectStore, bid: str, delete_built: bool=False):
-    binder, metadata = get_binder_from_store(store, bid)
+def delete(store: storage.AutoSaveObjectStore, bid: str, delete_built: bool=False):
+    binder, metadata = _get_binder_from_store(store, bid)
     if binder is None:
         return
 
@@ -209,7 +189,7 @@ def delete_binder(store: storage.AutoSaveObjectStore, bid: str, delete_built: bo
     _log.info("Deleted binder view `{:s}` from qmtg's system stores.".format(binder.id))
 
     
-def get_binder_from_store(store: storage.AutoSaveObjectStore, bid: str) -> Tuple[qmtgbinder.Binder, qmtgbinder.Metadata]:
+def _get_binder_from_store(store: storage.AutoSaveObjectStore, bid: str) -> Tuple[qmtgbinder.Binder, qmtgbinder.Metadata]:
     """
     Get binder from store, checking metadata to ensure all is well with it.
 

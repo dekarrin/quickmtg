@@ -1,8 +1,7 @@
 from quickmtg import binder as qmtgbinder
-from quickmtg.actions import delete_binder, edit_binder, search_cards, show_card, get_card_image, create_binder, list_binders, show_binder
+from quickmtg.actions import binder_actions as binders, card_actions as cards
 from quickmtg import scryfall, storage
 import sys
-import pprint
 import logging
 import logging.handlers
 import argparse
@@ -45,19 +44,19 @@ def _parse_cli_and_run():
 
     # Binder listing
     binder_list_parser = binder_subs.add_parser('list', help='List out the IDs of every binder view that exists on the system.', description='List all current binder views')
-    binder_list_parser.set_defaults(func=lambda ns: list_binders(store, api))
+    binder_list_parser.set_defaults(func=lambda ns: binders.list_all(store, api))
 
     # Binder showing
     binder_show_parser = binder_subs.add_parser('show', help='Shows all information on a binder view, including name, path, and number of cards in the view.', description='Show info on a binder view')
     binder_show_parser.add_argument('binder', help="The ID of the binder to show info on")
     binder_show_parser.add_argument('-c', '--cards', help="Give a complete list of cards instead of just giving a count.", action='store_true')
-    binder_show_parser.set_defaults(func=lambda ns: show_binder(store, ns.binder, ns.cards))
+    binder_show_parser.set_defaults(func=lambda ns: binders.show(store, ns.binder, ns.cards))
 
     # Binder deleting
     binder_delete_parser = binder_subs.add_parser('delete', help='Removes a binder view from QMTG tracking. If specified, also deletes the built binder view.', description='Remove a binder view')
     binder_delete_parser.add_argument('binder', help="The ID of the binder to delete")
     binder_delete_parser.add_argument('--delete-directory', help="Delete the entire built binder view files on disk in addition to removing the binder from tracking.", action='store_true')
-    binder_delete_parser.set_defaults(func=lambda ns: delete_binder(store, ns.binder, ns.delete_directory))
+    binder_delete_parser.set_defaults(func=lambda ns: binders.delete(store, ns.binder, ns.delete_directory))
     
     # Binder editing
     binder_edit_parser = binder_subs.add_parser('edit', help='Edits properties of a binder. This can be used to, for example, update QMTG tracking with the location of a moved view binder directory.', description='Edit properties of a binder view')
@@ -65,7 +64,7 @@ def _parse_cli_and_run():
     binder_edit_parser.add_argument('--id', help="A new ID to set for the binder.")
     binder_edit_parser.add_argument('-n', '--name', help="A new name to set for the binder.")
     binder_edit_parser.add_argument('--path', help="A new directory path to set for the binder.")
-    binder_edit_parser.set_defaults(func=lambda ns: edit_binder(store, ns.binder, ns.id, ns.name, ns.path))
+    binder_edit_parser.set_defaults(func=lambda ns: binders.edit(store, ns.binder, ns.id, ns.name, ns.path))
 
     # Binder creation
     binder_create_parser = binder_subs.add_parser('create', help='Create a new binder view from the given owned cards list. HTML pages containing the binder are output to a directory, and an index.html is created as the starting point for viewing the binder.', description='Create a new binder view.')
@@ -73,7 +72,7 @@ def _parse_cli_and_run():
     binder_create_parser.add_argument('--id', help="An ID to internally call the binder")
     binder_create_parser.add_argument('input_list', help='The file to parse for the cards in it. Must contain a list in tappedout.net board format text, which is known to sometimes be not perfect.')
     binder_create_parser.add_argument('output_dir', help="The directory to store the output files in. Will be created if it doesn't already exist.")
-    binder_create_parser.set_defaults(func=lambda ns: create_binder(store, api, ns.input_list, ns.output_dir, name=ns.name, id=ns.id))
+    binder_create_parser.set_defaults(func=lambda ns: binders.create(store, api, ns.input_list, ns.output_dir, name=ns.name, id=ns.id))
 
     # Card actions
     card_parser = subparsers.add_parser('card', help='Perform an action against the card API.', description="Card lookup actions.")
@@ -85,14 +84,14 @@ def _parse_cli_and_run():
     card_search_parser.add_argument('names', help="The name(s) of the card(s) to search for.", nargs='+', metavar='CARD')
     card_search_parser.add_argument('-f', '--fuzzy', help="Do a fuzzy search instead of exact name match.", action='store_true')
     card_search_parser.add_argument('-s', '--set', help="Limit the lookup to a particular set denoted by the three to five-letter set-code.", action='store')
-    card_search_parser.set_defaults(func=lambda ns: search_cards(api, ns.fuzzy, ns.set, *ns.names))
+    card_search_parser.set_defaults(func=lambda ns: cards.search(api, ns.fuzzy, ns.set, *ns.names))
 
     # Card look up
     card_search_parser = card_subs.add_parser('show', help='Look up a particular card by using its set ID and collector number within that set.', description="Look up a card by its number.")
     card_search_parser.add_argument('set', help="The three or to five-letter code that represents the set the card is in")
     card_search_parser.add_argument('num', help="The collector number of the card within the set.")
     card_search_parser.add_argument('-l', '--lang', help="The 2-3 letter language code of the language to get details of the card in, if non-english is desired.")
-    card_search_parser.set_defaults(func=lambda ns: show_card(api, ns.set, ns.num, ns.lang))
+    card_search_parser.set_defaults(func=lambda ns: cards.show(api, ns.set, ns.num, ns.lang))
 
     card_image_parser = card_subs.add_parser('image', help="Ensure that a card's image is downloaded.")
     card_image_parser.add_argument('set', help="The three or to five-letter code that represents the set the card is in")
@@ -100,7 +99,7 @@ def _parse_cli_and_run():
     card_image_parser.add_argument('size', help="The collector number of the card within the set.", choices=['full', 'large', 'normal', 'small'])
     card_image_parser.add_argument('-l', '--lang', help="The 2-3 letter language code of the language to get details of the card in, if non-english is desired.")
     card_image_parser.add_argument('-b', '--back', help="Get the back face instead of the front face, if there is one.", action='store_true')
-    card_image_parser.set_defaults(func=lambda ns: get_card_image(api, ns.set, ns.num, ns.lang, ns.size, ns.back))
+    card_image_parser.set_defaults(func=lambda ns: cards.get_image(api, ns.set, ns.num, ns.lang, ns.size, ns.back))
     
     args = parser.parse_args()
 
