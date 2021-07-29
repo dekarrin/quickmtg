@@ -307,7 +307,7 @@ class Card:
         return not self.__le__(other)
     
     def __hash__(self) -> int:
-        return hash((self.id, self.set, self.rarity, self.number, frozenset(self.faces)))
+        return hash((self.id, self.set, self.rarity, self.number, frozenset(self.faces), self.active_face))
 
     def __str__(self) -> str:
         return 'Card<{:s} {!r}>'.format(self.setnum, self.name)
@@ -331,15 +331,18 @@ class Card:
         c_order += 5 * (len(self.color) - 1)
         return c_order
 
-    def flip(self):
+    def flip(self) -> 'Card':
         """
-        Set the active face to the next one up. If this card has only one face,
-        this method has no effect.
+        Return a Card with the active face to the next one up. If this card ha
+        sonly one face, the returned card is identical.
         """
+        d = self.to_dict()
         if len(self.faces) < 1:
-            return
-        self.active_face += 1
-        self.active_face %= len(self.faces)
+            return Card(**d)
+        face = self.active_face + 1
+        face %= len(self.faces)
+        d['active_face'] = face
+        return Card(**d)
 
     @property
     def setnum(self) -> str:
@@ -504,6 +507,40 @@ class OwnedCard(Card):
         elif self.count != other.count:
             return False
         return True
+
+    def __ne__(self, other) -> bool:
+        if not isinstance(other, OwnedCard):
+            return NotImplemented
+        return not self.__eq__(other)
+
+    def __lt__(self, other) -> bool:
+        if not isinstance(other, OwnedCard):
+            raise NotImplemented()
+        
+        if not super().__lt__(other):
+            return False
+
+        self_props = (self.condition, self.foil, self.count,)
+        other_props = (other.condition, other.foil, other.count,)
+        return self_props < other_props
+
+    def __le__(self, other):
+        if not isinstance(other, Card):
+            return NotImplemented
+
+        return self.__lt__(other) or self.__eq__(other)
+
+    def __ge__(self, other):
+        if not isinstance(other, Card):
+            return NotImplemented
+
+        return not self.__lt__(other)
+
+    def __gt__(self, other):
+        if not isinstance(other, Card):
+            return NotImplemented
+
+        return not self.__le__(other)
 
     def __hash__(self) -> int:
         return hash((super().__hash__(), self.condition, self.foil, self.count))

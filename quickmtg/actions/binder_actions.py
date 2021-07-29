@@ -70,6 +70,8 @@ def create(store: storage.AutoSaveObjectStore, api: scryfall.ScryfallAgent, list
         owned.count = c.count
         cards.append(owned)
 
+    cards = sorted(cards)
+
     # cards are now gotten, generate html:
     _log.info("(3/6) Generating binder pages...")
     _generate_binder_pages(name, output_dir, cards, 3, 3)
