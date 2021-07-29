@@ -187,6 +187,7 @@ class Card:
         self.rarity: str = ''
         self.faces: List[Face] = list()
         self.number = None
+        self.active_face: int = 0
 
         if kwargs is not None:
             if 'id' in kwargs:
@@ -203,6 +204,8 @@ class Card:
                 self.faces = list((f if isinstance(f, Face) else Face(**f)) for f in kwargs['faces'])
             if 'number' in kwargs:
                 self.number = kwargs['number']
+            if 'active_face' in kwargs:
+                self.active_face = int(kwargs['active_face'])
 
     @property
     def pretty_num(self) -> str:
@@ -239,7 +242,7 @@ class Card:
     
     def __eq__(self, other) -> bool:
         if not isinstance(other, Card):
-            return False
+            return NotImplemented
         else:
             if self.id != other.id:
                 return False
@@ -257,6 +260,52 @@ class Card:
 
             return True
 
+    def __ne__(self, other) -> bool:
+        if not isinstance(other, Card):
+            return NotImplemented
+        return not self.__eq__(other)
+
+    def __lt__(self, other) -> bool:
+        if not isinstance(other, Card):
+            raise NotImplemented()
+        
+        # sort by color, then cmc, then power, then toughness, then alphabetically
+        self_props = (
+            self._color_order(),
+            self.cmc,
+            self.power,
+            self.toughness,
+            self.name,
+        )
+
+        other_props = (
+            other._color_order(),
+            other.cmc,
+            other.power,
+            other.toughness,
+            other.name,
+        )
+
+        return self_props < other_props
+
+    def __le__(self, other):
+        if not isinstance(other, Card):
+            return NotImplemented
+
+        return self.__lt__(other) or self.__eq__(other)
+
+    def __ge__(self, other):
+        if not isinstance(other, Card):
+            return NotImplemented
+
+        return not self.__lt__(other)
+
+    def __gt__(self, other):
+        if not isinstance(other, Card):
+            return NotImplemented
+
+        return not self.__le__(other)
+    
     def __hash__(self) -> int:
         return hash((self.id, self.set, self.rarity, self.number, frozenset(self.faces)))
 
@@ -267,12 +316,43 @@ class Card:
         fmt = 'Card(id={!r}, set={!r}, number={!r}, rarity={!r}, faces={!r})'
         return fmt.format(self.id, self.set, self.number, self.rarity, self.faces)
 
+    def _color_order(self) -> int:
+        c_order: int = 0
+        if color.WHITE in self.color:
+            c_order = 0
+        elif color.BLUE in self.color:
+            c_order = 1
+        elif color.BLACK in self.color:
+            c_order = 2
+        elif color.RED in self.color:
+            c_order = 3
+        elif color.GREEN in self.color:
+            c_order = 4
+        c_order += 5 * (len(self.color) - 1)
+        return c_order
+
+    def flip(self):
+        """
+        Set the active face to the next one up. If this card has only one face,
+        this method has no effect.
+        """
+        if len(self.faces) < 1:
+            return
+        self.active_face += 1
+        self.active_face %= len(self.faces)
+
     @property
     def setnum(self) -> str:
         return '{:s}:{:s}'.format(self.set, self.pretty_num)
 
     @property
     def name(self) -> str:
+        if len(self.faces) < self.active_face + 1:
+            return ""
+        return self.faces[self.active_face].name
+
+    @property
+    def all_names(self) -> str:
         if len(self.faces) < 1:
             return ""
         n = self.faces[0].name
@@ -281,7 +361,17 @@ class Card:
         return n
 
     @property
+    def cmc(self) -> int:
+        return color.cost_to_cmc(self.cost)
+
+    @property
     def type(self) -> str:
+        if len(self.faces) < self.active_face + 1:
+            return ""
+        return self.faces[self.active_face].type
+
+    @property
+    def all_types(self) -> str:
         if len(self.faces) < 1:
             return ""
         t = self.faces[0].type
@@ -291,6 +381,12 @@ class Card:
 
     @property
     def cost(self) -> str:
+        if len(self.faces) < self.active_face + 1:
+            return ""
+        return self.faces[self.active_face].cost
+
+    @property
+    def all_costs(self) -> str:
         if len(self.faces) < 1:
             return ""
         c = self.faces[0].cost
@@ -300,6 +396,12 @@ class Card:
 
     @property
     def text(self) -> str:
+        if len(self.faces) < self.active_face + 1:
+            return ""
+        return self.faces[self.active_face].text
+
+    @property
+    def all_texts(self) -> str:
         if len(self.faces) < 1:
             return ""
         t = self.faces[0].text
@@ -318,24 +420,42 @@ class Card:
 
     @property
     def color(self) -> Set[Color]:
+        if len(self.faces) < self.active_face + 1:
+            return set()
+        return self.faces[self.active_face].color
+
+    @property
+    def all_colors(self) -> Set[Color]:
         if len(self.faces) < 1:
             return set()
-        s = self.faces[0].color
+        s = set(self.faces[0].color)
         for face in self.faces[1:]:
             s.update(face.color)
         return s
+        
+    @property
+    def power(self) -> Optional[str]:
+        if len(self.faces) < self.active_face + 1:
+            return None
+        return self.faces[self.active_face].power
 
     @property
-    def power(self) -> List[Optional[str]]:
+    def all_powers(self) -> List[Optional[str]]:
         if len(self.faces) < 1:
             return list()
         p = list(self.faces[0].power)
         for face in self.faces[1:]:
             p.append(face.power)
         return p
+        
+    @property
+    def toughness(self) -> Optional[str]:
+        if len(self.faces) < self.active_face + 1:
+            return None
+        return self.faces[self.active_face].toughness
 
     @property
-    def toughness(self) -> List[Optional[str]]:
+    def all_toughnesses(self) -> List[Optional[str]]:
         if len(self.faces) < 1:
             return list()
         t = list(self.faces[0].toughness)
@@ -349,7 +469,8 @@ class Card:
             'set': self.set,
             'rarity': self.rarity,
             'faces': [f.to_dict() for f in self.faces],
-            'number': self.number
+            'number': self.number,
+            'active_face': self.active_face
         }
 
 class OwnedCard(Card):
