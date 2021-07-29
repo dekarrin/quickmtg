@@ -65,8 +65,8 @@ RED = Color('RED', 'R')
 GREEN = Color('GREEN', 'G')
 COLORLESS = Color('COLORLESS', '')
 
-AnyColor: FrozenSet[Color] = frozenset(WHITE, BLUE, BLACK, RED, GREEN,)
-AnyMana: FrozenSet[Color] = frozenset(WHITE, BLUE, BLACK, RED, GREEN, COLORLESS,)
+AnyColor: FrozenSet[Color] = frozenset((WHITE, BLUE, BLACK, RED, GREEN,))
+AnyMana: FrozenSet[Color] = frozenset((WHITE, BLUE, BLACK, RED, GREEN, COLORLESS,))
 
 class Payable:
     """

@@ -2,6 +2,12 @@ from . import color
 from .color import Color
 from typing import Any, Dict, List, Optional, Set, Tuple, Union
 import uuid
+import logging
+
+
+_log = logging.getLogger(__name__)
+_log.setLevel(logging.DEBUG)
+
 
 class Size:
     def __init__(self, name: str, api_name: str, w: int, h: int, file_format: str):
@@ -273,16 +279,16 @@ class Card:
         self_props = (
             self._color_order(),
             self.cmc,
-            self.power,
-            self.toughness,
+            self.power if self.power else '',
+            self.toughness if self.toughness else '',
             self.name,
         )
 
         other_props = (
             other._color_order(),
             other.cmc,
-            other.power,
-            other.toughness,
+            other.power if other.power else '',
+            other.toughness if other.toughness else '',
             other.name,
         )
 
