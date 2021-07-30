@@ -2,6 +2,8 @@ from datetime import time, timedelta
 import os
 import pickle
 import logging
+import dateutil
+from quickmtg import mtgset
 import uuid
 from .card import Card, Face
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
@@ -112,6 +114,41 @@ class ScryfallAgent:
         amount of time.
         """
         return self._get_catalog('creature-types')
+
+    def get_catalog_plainswalker_types(self) -> List[str]:
+        """
+        Get a current list of all plainswalker types. Cached up to _STATIC_CACHE_TTL
+        amount of time.
+        """
+        return self._get_catalog('plainswalker-types')
+
+    def get_catalog_land_types(self) -> List[str]:
+        """
+        Get a current list of all land types. Cached up to _STATIC_CACHE_TTL
+        amount of time.
+        """
+        return self._get_catalog('land-types')
+
+    def get_catalog_artifact_types(self) -> List[str]:
+        """
+        Get a current list of all artifact types. Cached up to _STATIC_CACHE_TTL
+        amount of time.
+        """
+        return self._get_catalog('artifact-types')
+
+    def get_catalog_enchantment_types(self) -> List[str]:
+        """
+        Get a current list of all enchantment types. Cached up to _STATIC_CACHE_TTL
+        amount of time.
+        """
+        return self._get_catalog('enchantment-types')
+
+    def get_catalog_spell_types(self) -> List[str]:
+        """
+        Get a current list of all spell types. Cached up to _STATIC_CACHE_TTL
+        amount of time.
+        """
+        return self._get_catalog('spell-types')
 
     def get_catalog_keyword_abilities(self) -> List[str]:
         """
@@ -311,6 +348,44 @@ class ScryfallAgent:
         self._filestore.set(cachepath, resp)
         self._save_cache()
         return resp
+
+    def get_set(self, code: str) -> mtgset.Set:
+        """
+        Get details on a set by its set code.
+        
+        Raises APIError if there is an issue with the request.
+        """
+        code = code.lower()
+
+        # check cache first
+        cachepath = '/sets/{:s}/info'.format(code)
+        cached, hit = self._cache.get(cachepath)
+        if hit:
+            return mtgset.Set(**cached)
+
+        _log.debug('Data cache miss for {:s}; retrieving from scryfall...'.format(cachepath))
+        
+        params = {
+            'pretty': self._pretty_response
+        }
+
+        status, resp = self._http.request('GET', '/sets/{:s}'.format(code), query=params)
+        if status >= 400:
+            err = APIError.parse(resp)
+            raise err
+
+        # set up properties for Set obj
+        resp['type'] = resp['set_type']
+        if 'released_at' in resp:
+            rd = dateutil.parser.parse(resp['released_at'])
+            if rd.tzinfo is None:
+                rd = rd.replace(tzinfo=dateutil.tz.gettz('America/Los_Angeles'))
+            resp['release_date'] = rd
+
+        s = mtgset.Set(**resp)
+        self._cache.set(cachepath, s.to_dict())
+        self._save_cache()
+        return s
     
     def get_card_by_num(self, set_code: str, number: str, lang: str=None) -> Card:
         """
