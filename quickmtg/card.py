@@ -276,23 +276,19 @@ class Card:
             raise NotImplemented()
         
         # sort by color, then cmc, then power, then toughness, then alphabetically
-        self_props = (
-            self._color_order(),
+        self_props = self._order_index()
+        other_props = other._order_index()
+
+        return self_props < other_props
+
+    def _order_index(self) -> Tuple:
+        (
+            self._color_order_index(),
             self.cmc,
             self.power if self.power else '',
             self.toughness if self.toughness else '',
             self.name,
         )
-
-        other_props = (
-            other._color_order(),
-            other.cmc,
-            other.power if other.power else '',
-            other.toughness if other.toughness else '',
-            other.name,
-        )
-
-        return self_props < other_props
 
     def __le__(self, other):
         if not isinstance(other, Card):
@@ -322,7 +318,7 @@ class Card:
         fmt = 'Card(id={!r}, set={!r}, number={!r}, rarity={!r}, faces={!r})'
         return fmt.format(self.id, self.set, self.number, self.rarity, self.faces)
 
-    def _color_order(self) -> int:
+    def _color_order_index(self) -> int:
         c_order: int = 0
         if color.WHITE in self.color:
             c_order = 0
@@ -522,13 +518,8 @@ class OwnedCard(Card):
     def __lt__(self, other) -> bool:
         if not isinstance(other, OwnedCard):
             raise NotImplemented()
-        
-        if not super().__lt__(other):
-            return False
 
-        self_props = (self.condition, self.foil, self.count,)
-        other_props = (other.condition, other.foil, other.count,)
-        return self_props < other_props
+        return self._order_index() < other._order_index()
 
     def __le__(self, other):
         if not isinstance(other, Card):
@@ -548,6 +539,9 @@ class OwnedCard(Card):
 
         return not self.__le__(other)
 
+    def _order_index(self) -> Tuple:
+        return (super()._order_index(), self.condition, self.foil, self.count,)
+
     def __hash__(self) -> int:
         return hash((super().__hash__(), self.condition, self.foil, self.count))
 
@@ -559,7 +553,7 @@ class OwnedCard(Card):
 
     def __repr__(self) -> str:
         fmt = 'OwnedCard(id={!r}, set={!r}, number={!r}, rarity={!r}, faces={!r}, condition={!r}, foil={!r}, count={!r})'
-        return fmt.format(self.id, self.set, self.number, self.rarity, self.faces, self.condition, self.foil)
+        return fmt.format(self.id, self.set, self.number, self.rarity, self.faces, self.condition, self.foil, self.count)
 
     def to_dict(self) -> Dict[str, Any]:
         d = super().to_dict()
