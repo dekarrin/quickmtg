@@ -282,7 +282,9 @@ def _symbol_to_cmc(cost_sym: str) -> Payable:
             return Payable(1.0, left_payable.colors, dual_generic=right_payable.amount)
         else:
             # it must be a dual color
-            return Payable(1.0, left_payable.colors + right_payable.colors)
+            both_colors = set(left_payable.colors)
+            both_colors.update()
+            return Payable(1.0, both_colors)
     else:
         try:
             cmc = float(cost_sym)

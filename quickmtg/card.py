@@ -69,9 +69,10 @@ def size_from_str(s: str) -> Size:
 
 
 class Condition:
-    def __init__(self, name: str, symbol: str):
+    def __init__(self, name: str, symbol: str, id: int):
         self.name = name
         self.symbol = symbol
+        self.id = id
 
     def __str__(self):
         return self.name
@@ -80,15 +81,46 @@ class Condition:
         return self.symbol
 
     def __eq__(self, other):
-        return self.name == other.name
+        if not isinstance(other, Condition):
+            return NotImplemented
+        
+        return self.id == other.id
+
+    def __ne__(self, other):
+        if not isinstance(other, Condition):
+            return NotImplemented
+        
+        return not self.__eq__(other)
+
+    def __lt__(self, other):
+        if not isinstance(other, Condition):
+            return NotImplemented
+        
+        return self.id < other.id
+    
+    def __le__(self, other):
+        if not isinstance(other, Condition):
+            return NotImplemented
+        
+        return self < other or self == other
+
+    def __gt__(self, other):
+        if not isinstance(other, Condition):
+            return NotImplemented
+
+        return not (self <= other)
+
+    def __ge__(self, other):
+        if not isinstance(other, Condition):
+            return NotImplemented
 
     def __hash__(self):
         return hash((self.name, self.symbol,))
 
-MINT = Condition('MINT/NEAR MINT', '')
-SLIGHTLY_USED = Condition('SLIGHTLY USED', 'SL')
-MEDIUM_USED = Condition('MEDIUM USED', 'ME')
-HEAVY_USED = Condition('HEAVY USED', 'HE')
+MINT = Condition('MINT/NEAR MINT', '', 0)
+SLIGHTLY_USED = Condition('SLIGHTLY USED', 'SL', 1)
+MEDIUM_USED = Condition('MEDIUM USED', 'ME', 2)
+HEAVY_USED = Condition('HEAVY USED', 'HE', 3)
 
 
 def cond_from_symbol(symbol: str) -> Condition:

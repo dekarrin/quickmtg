@@ -63,7 +63,7 @@ def create(store: storage.AutoSaveObjectStore, api: scryfall.ScryfallAgent, list
             # need to get the number
             c.number = api.get_card_default_num(c.name, c.set)
 
-        full_data = api.get_card_by_num(c.set, c.number).to_dict()                
+        full_data = api.get_card_by_num(c.set, c.number).to_dict()
         owned = OwnedCard(**full_data)
         owned.foil = c.foil
         owned.condition = c.condition

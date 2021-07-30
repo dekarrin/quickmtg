@@ -112,7 +112,7 @@ def _parse_cli_and_run():
     cachepath = os.path.join(args.qmtg_home, 'scryfall.p')
     filepath = os.path.join(args.qmtg_home, 'filestore')
     api = scryfall.ScryfallAgent('api.scryfall.com', pretty=False, cachefile=cachepath, file_home=filepath)
-    store = storage.AutoSaveObjectStore(os.path.join(args.qmtg_home, 'qmtp.p'))
+    store = storage.AutoSaveObjectStore(os.path.join(args.qmtg_home, 'qmtg.p'))
     store.register(qmtgbinder.Binder, qmtgbinder.Binder.to_dict, lambda d: qmtgbinder.Binder(**d))
     store.register(qmtgbinder.Metadata, qmtgbinder.Metadata.to_dict, lambda d: qmtgbinder.Metadata(**d))
     args.func(args)

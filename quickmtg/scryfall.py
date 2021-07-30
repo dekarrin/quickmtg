@@ -483,7 +483,7 @@ def _parse_resp_card(resp: Dict[str, Any]) -> Card:
 
     # must parse each face
     layout = resp['layout']
-    if layout in ['split', 'flip', 'transform', 'double_faced_token']:
+    if layout.lower() in ['split', 'flip', 'transform', 'double_faced_token', 'modal_dfc']:
         for f in resp['card_faces']:
             face = _parse_resp_face(f)
             c.faces.append(face)
