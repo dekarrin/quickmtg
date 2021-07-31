@@ -26,9 +26,12 @@
                         {% else %}
                         <td class="filled{{ " foil" if card.foil else "" }}">
                             <a class="card" href="javascript:void(0);" title="{{ card.name }}" data-name="{{ card.name }}" data-owned="{{ card.count }}" data-foil="{{ card.foil }}" data-cond="{{ card.condition }}" data-img="{{ card | cardfile('large') }}">
-                                <img class="card" src="assets/images/{{ card | cardfile }}" width="{{ 'small'|sizew }}" height="{{ 'small'|sizeh }}" alt="{{ card.setnum }}" />
+                                <img class="card" src="assets/images/{{ card | cardfile }}" width="{{ 'small'|sizew|int * 1.2 }}" height="{{ 'small'|sizeh|int * 1.2 }}" alt="{{ card.setnum }}" />
                                 {% if card.count > 1 %}
-                                <img class="card multiowned" src="assets/images/{{ card | cardfile }}" width="{{ 'small'|sizew }}" height="{{ 'small'|sizeh }}" alt="{{ card.setnum }}" />
+                                <img class="card multiowned" src="assets/images/{{ card | cardfile }}" width="{{ 'small'|sizew|int * 1.2 }}" height="{{ 'small'|sizeh|int * 1.2 }}" alt="{{ card.setnum }}" />
+                                {% endif %}
+                                {% if card.has_other_side %}
+                                <img class="flipper"src="assets/flip.png" alt="flippable"/>
                                 {% endif %}
                             </a>
                         </td>

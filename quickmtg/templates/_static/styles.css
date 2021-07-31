@@ -116,6 +116,15 @@ table.binderpage td img.multiowned {
     z-index: 0;
 }
 
+table.binderpage td img.flipper {
+    position: absolute;
+    top: 3.0em;
+    left: 0.4em;
+    z-index: 2;
+    border: 1px solid #000;
+    width: 40%;
+}
+
 #cardinfo-modal {
     display: none;
 }

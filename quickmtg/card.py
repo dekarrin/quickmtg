@@ -307,14 +307,14 @@ class Card:
         if not isinstance(other, Card):
             raise NotImplemented()
         
-        # sort by color, then cmc, then power, then toughness, then alphabetically
         self_props = self._order_index()
         other_props = other._order_index()
 
         return self_props < other_props
 
     def _order_index(self) -> Tuple:
-        (
+        return (
+            self._type_order_index(),
             self._color_order_index(),
             self.cmc,
             self.power if self.power else '',
@@ -351,6 +351,8 @@ class Card:
         return fmt.format(self.id, self.set, self.number, self.rarity, self.faces)
 
     def _color_order_index(self) -> int:
+        if len(self.color) == 0:
+            return 5  # if no color, come last
         c_order: int = 0
         if color.WHITE in self.color:
             c_order = 0
@@ -365,7 +367,78 @@ class Card:
         c_order += 5 * (len(self.color) - 1)
         return c_order
 
-    def flip(self) -> 'Card':
+    def _type_order_index(self) -> int:
+        supertypes, card_type, subtypes = self._parsed_type()
+
+        if card_type == 'creature':
+            checked_supertypes = list(supertypes)
+            
+            # snow creature are basically just creature
+            # with identifier, so dont sort based on that
+            if 'snow' in checked_supertypes:
+                checked_supertypes.remove('snow')
+
+            if len(checked_supertypes) == 0:
+                return 0
+            elif len(checked_supertypes) == 1:
+                if checked_supertypes[0] == 'artifact':
+                    return 1
+                elif checked_supertypes[0] == 'enchantment':
+                    return 2
+                elif checked_supertypes[0] == 'legendary':
+                    return 3
+        elif card_type == 'planeswalker':
+            if len(supertypes) == 0:
+               return 10
+            elif len(supertypes) == 1:
+                if supertypes[0] == 'legendary':
+                    return 13
+        elif card_type == 'land':
+            checked_supertypes = list(supertypes)
+
+            # snow lands shouldnt be sorted specially, nor should artifact lands
+            if 'snow' in checked_supertypes:
+                checked_supertypes.remove('snow')
+            if 'artifact' in checked_supertypes:
+                checked_supertypes.remove('artifact')
+
+            if len(checked_supertypes) == 0:
+               return 21
+            elif len(checked_supertypes) == 1:
+                if checked_supertypes[0] == 'basic':
+                    return 20
+        elif card_type == 'artifact':
+            return 30
+        elif card_type == 'enchantment':
+            return 40
+        elif card_type == 'sorcery':
+            return 50
+        elif card_type == 'instant':
+            return 60
+        raise ValueError('Not a parsable type_line: {!r}'.format(self.type))
+
+    def _parsed_type(self) -> Tuple[List[str], str, List[str]]:
+        subtypes = []
+        card_type = ''
+        supertypes = []
+        halves = [s.strip().lower() for s in self.type.split('\u2014')]
+        if len(halves) > 1:
+            subtypes = halves[1].split(' ')
+        types = halves[0].split(' ')
+        if len(types) > 1:
+            supertypes = types[:-1]
+            card_type = types[-1]
+        else:
+            card_type = types[0]
+
+        return supertypes, card_type, subtypes
+
+    @property
+    def has_other_side(self) -> bool:
+        return len(self.faces) > 1
+
+    @property
+    def flipped(self) -> 'Card':
         """
         Return a Card with the active face to the next one up. If this card ha
         sonly one face, the returned card is identical.
@@ -550,7 +623,7 @@ class OwnedCard(Card):
     def __lt__(self, other) -> bool:
         if not isinstance(other, OwnedCard):
             raise NotImplemented()
-
+        
         return self._order_index() < other._order_index()
 
     def __le__(self, other):

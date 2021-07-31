@@ -290,7 +290,8 @@ def _generate_binder_index(name: str, output_dir: str):
 
 def _copy_binder_assets(output_dir: str):
     assets_path = os.path.join(output_dir, 'assets')
-    stylesheet = layout.gen_stylesheet()
-    dest_path = os.path.join(assets_path, 'styles.css')
-    with open(dest_path, 'w') as fp:
-        fp.write(stylesheet)
+    statics = layout.gen_static()
+    for f in statics:
+        dest_path = os.path.join(assets_path, f['name'])
+        with open(dest_path, 'w' + f['write_mode']) as fp:
+            fp.write(f['data'])
