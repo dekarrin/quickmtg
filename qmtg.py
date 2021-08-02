@@ -1,5 +1,5 @@
-from quickmtg import binder as qmtgbinder
-from quickmtg.actions import binder_actions as binders, card_actions as cards
+from quickmtg import binder as qmtgbinder, inven
+from quickmtg.actions import binder_actions as binders, card_actions as cards, inventory_actions as inventories
 from quickmtg import scryfall, storage
 import sys
 import logging
@@ -37,6 +37,50 @@ def _parse_cli_and_run():
     subparsers = parser.add_subparsers(description="Functionality to execute.", metavar=" SUBCOMMAND ", dest='cmd')
     subparsers.required = True
 
+    # Inventory actions
+    inven_parser = subparsers.add_parser('inven', help='Operates on card inventory lists.', description="Inventory operations.")
+    inven_subs = inven_parser.add_subparsers(description="Action on inventory", metavar="ACTION", dest='cmdaction')
+    inven_subs.required = True
+
+    # Inventory create
+    inven_create_parser = inven_subs.add_parser('create', help="Make a new inventory list. The new inventory will be empty after creation.", description="Create a new inventory")
+    inven_create_parser.add_argument('-n', '--name', help="what to call the inventory")
+    inven_create_parser.add_argument('--id', help="An ID to internally call the inventory, and to refer to it in later commands")
+    inven_create_parser.add_argument('output_dir', help="Where on disk to create the inventory (it is also backed up in QMTG tracking).")
+    inven_create_parser.set_defaults(func=lambda ns: inventories.create(store, ns.output_dir, name=ns.name, id=ns.id))
+
+    # Inventory list
+    inven_list_parser = inven_subs.add_parser('list', help='List out the IDs of every inventory that exists on the system.', description='List all inventories')
+    inven_list_parser.set_defaults(func=lambda ns: inventories.list_all(store))
+
+    # Inventory edit
+    inven_edit_parser = inven_subs.add_parser('edit', help='Edits properties of an inventory. This can be used to set properties; to add cards use addcards.', description='Edit properties of an inventory')
+    inven_edit_parser.add_argument('inventory', help="The ID of the inventory to edit")
+    inven_edit_parser.add_argument('--id', help="A new ID to set for the inventory.")
+    inven_edit_parser.add_argument('-n', '--name', help="A new name to set for the inventory.")
+    inven_edit_parser.add_argument('--path', help="A new directory path to set for the inventory.")
+    inven_edit_parser.set_defaults(func=lambda ns: inventories.edit(store, ns.inventory, ns.id, ns.name, ns.path))
+
+    # Inventory show
+    inven_show_parser = inven_subs.add_parser('show', help='Shows all information on an inventory, including name, and number of cards in the view.', description='Show info on a binder view')
+    inven_show_parser.add_argument('inventory', help="The ID of the inventory to show info on")
+    inven_show_parser.add_argument('-c', '--cards', help="Give a complete list of cards instead of just giving a count.", action='store_true')
+    inven_show_parser.add_argument('-b', '--board', help="When giving the list of cards, print them out in tappedout.net board-format instead of the complete listing of cards.", action='store_true')
+    inven_show_parser.add_argument('-n', '--no-meta', help="Only show the list of cards; do not print other information about the inventory before the card list.", action='store_true')
+    inven_show_parser.set_defaults(func=lambda ns: inventories.show(store, ns.inventory, ns.cards, ns.board, ns.no_meta))
+
+    # Inventory delete
+    inven_delete_parser = inven_subs.add_parser('delete', help='Removes an inventory from QMTG tracking. If specified, also deletes the inventory directory on disk.', description='Remove an inventory')
+    inven_delete_parser.add_argument('inventory', help="The ID of the inventory to delete")
+    inven_delete_parser.add_argument('--delete-directory', help="Delete the entire built inventory files on disk in addition to removing the inventory from tracking.", action='store_true')
+    inven_delete_parser.set_defaults(func=lambda ns: inventories.delete(store, ns.inventory, ns.delete_directory))
+
+    # Inventory addcards
+    inven_addcards_parser = inven_subs.add_parser('addcards', help="Add one or more cards to the inventory. The tappedout.net board-format lists files that are specified are loaded and used to populate the inventory.", description="Add cards to an inventory")
+    inven_addcards_parser.add_argument('inventory', help="The ID of the inventory to add cards to")
+    inven_addcards_parser.add_argument('list_file', nargs='+', help="One or more card lists to populate the new inventory with. These must be in tappedout.net board-format. If a list contains a card that already exists in the inventory, that card's owned total is increased by the amount of that card given in the board list.")
+    inven_addcards_parser.set_defaults(func=lambda ns: inventories.addcards(store, ns.inventory, *ns.list_file))
+
     # Binder actions
     binder_parser = subparsers.add_parser('binder', help='Operates on binder views generated from tappedout.net card lists in board format.', description="HTML binder operations.")
     binder_subs = binder_parser.add_subparsers(description="Action on binder", metavar="ACTION", dest='cmdaction')
@@ -44,7 +88,7 @@ def _parse_cli_and_run():
 
     # Binder listing
     binder_list_parser = binder_subs.add_parser('list', help='List out the IDs of every binder view that exists on the system.', description='List all current binder views')
-    binder_list_parser.set_defaults(func=lambda ns: binders.list_all(store, api))
+    binder_list_parser.set_defaults(func=lambda ns: binders.list_all(store))
 
     # Binder showing
     binder_show_parser = binder_subs.add_parser('show', help='Shows all information on a binder view, including name, path, and number of cards in the view.', description='Show info on a binder view')
@@ -115,6 +159,8 @@ def _parse_cli_and_run():
     store = storage.AutoSaveObjectStore(os.path.join(args.qmtg_home, 'qmtg.p'))
     store.register(qmtgbinder.Binder, qmtgbinder.Binder.to_dict, lambda d: qmtgbinder.Binder(**d))
     store.register(qmtgbinder.Metadata, qmtgbinder.Metadata.to_dict, lambda d: qmtgbinder.Metadata(**d))
+    store.register(inven.Inventory, inven.Inventory.to_dict, lambda d: inven.Inventory(**d))
+    store.register(inven.Metadata, inven.Metadata.to_dict, lambda d: inven.Metadata(**d))
     args.func(args)
 
 class _ExactLevelFilter(object):

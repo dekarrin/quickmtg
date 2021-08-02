@@ -1,8 +1,11 @@
 import datetime
 import time
+import re
 from typing import Any, Callable, Generic, Optional, TypeVar
 
 T = TypeVar('T')
+
+_id_norm_pattern = re.compile(r'[^a-z0-9_]')
 
 class _TimeLimitedFuncCall(Generic[T]):
     def __init__(self, period: datetime.timedelta, fn: Callable[[], T], call_then_wait: bool=False):
@@ -60,3 +63,10 @@ def once_every(period: datetime.timedelta, fn: Callable[[], T]) -> Callable[[], 
     """
     return _TimeLimitedFuncCall(period, fn, False)
 
+
+def normalize_id(raw: str) -> str:
+    """
+    Converts a string to one suitable for use as an ID. Removes spaces and
+    special characters and replaces them with '_' and makes it lower case.
+    """
+    return _id_norm_pattern.sub('_', str(raw).lower())

@@ -81,8 +81,7 @@ def create(store: storage.AutoSaveObjectStore, api: scryfall.ScryfallAgent, list
     _generate_binder_index(name, output_dir)
     _log.info("(6/6) Copying static assets...")
     _copy_binder_assets(output_dir)
-        
-    # if ID is default, make sure we dont override another
+    
     # dump info about the binder to the directory and main store
     binder = qmtgbinder.Binder(path=output_dir, name=name, id=id_name, cards=cards)
     json_dest = os.path.join(output_dir, 'binder.json')
@@ -97,7 +96,7 @@ def create(store: storage.AutoSaveObjectStore, api: scryfall.ScryfallAgent, list
     
     _log.info("Done! Binder view `{:s}` is now ready at {:s}".format(binder.id, output_dir + '/index.html'))
     
-def list_all(store: storage.AutoSaveObjectStore, api: scryfall.ScryfallAgent):
+def list_all(store: storage.AutoSaveObjectStore):
     metadata, _ = store.get('/binders/.meta', default=qmtgbinder.Metadata())
     if len(metadata.ids) < 1:
         _log.info("(No binder views have been created yet)")
