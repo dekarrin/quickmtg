@@ -41,12 +41,13 @@ def gen_static() -> List[Dict[str, Union[str, bytes]]]:
             data = template.render()
         else:
             this_path = os.path.dirname(__file__)
+            file_path = os.path.join(this_path, 'templates', '_static', f)
             mode = 'b'
             data = b''
-            _log.error("writing out to: {!s}".format(fname))
-            with open(fname, 'rb') as fp:
+            _log.error("writing out to: {!s}".format(f))
+            with open(file_path, 'rb') as fp:
                 data = fp.read()
-            _log.error("siz {:d}".format(len(data)))
+            _log.error("size {:d}".format(len(data)))
 
         r = {
             'name': f,
