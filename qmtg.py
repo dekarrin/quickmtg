@@ -79,7 +79,7 @@ def _parse_cli_and_run():
     inven_addcards_parser = inven_subs.add_parser('addcards', help="Add one or more cards to the inventory. The tappedout.net board-format lists files that are specified are loaded and used to populate the inventory.", description="Add cards to an inventory")
     inven_addcards_parser.add_argument('inventory', help="The ID of the inventory to add cards to")
     inven_addcards_parser.add_argument('list_file', nargs='+', help="One or more card lists to populate the new inventory with. These must be in tappedout.net board-format. If a list contains a card that already exists in the inventory, that card's owned total is increased by the amount of that card given in the board list.")
-    inven_addcards_parser.set_defaults(func=lambda ns: inventories.addcards(store, ns.inventory, *ns.list_file))
+    inven_addcards_parser.set_defaults(func=lambda ns: inventories.addcards(store, api, ns.inventory, *ns.list_file))
 
     # Binder actions
     binder_parser = subparsers.add_parser('binder', help='Operates on binder views generated from tappedout.net card lists in board format.', description="HTML binder operations.")

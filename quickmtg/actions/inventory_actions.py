@@ -107,16 +107,21 @@ def show(store: storage.AutoSaveObjectStore, iid: str, show_cards: bool=False, b
         return
 
     if not no_meta:
-        _log.info("Binder ID: {:s}".format(inv.id))
-        _log.info("Name:      {:s}".format(inv.name))
-        _log.info("Location:  {:s}".format(inv.path))
+        _log.info("Inventory ID: {:s}".format(inv.id))
+        _log.info("Name:         {:s}".format(inv.name))
+        _log.info("Location:     {:s}".format(inv.path))
     
     if not show_cards:
-        _log.info("Cards:     {:d}".format(len(inv.cards)))
+        _log.info("Cards:        {:d}".format(len(inv.cards)))
     else:
-        _log.info("Cards:")
-        for c in binder.cards:
-            _log.info("* " + tappedout.to_list_line(c))
+        if not no_meta:
+            _log.info("Cards:")
+        
+        for c in inv.cards:
+            if board_format:
+                _log.info(tappedout.to_list_line(c))
+            else:
+                _log.info('{:s}'.format(c))
 
 def delete(store: storage.AutoSaveObjectStore, iid: str, delete_built: bool=False):
     inv, metadata = _get_inv_from_store(store, iid)
@@ -136,66 +141,41 @@ def delete(store: storage.AutoSaveObjectStore, iid: str, delete_built: bool=Fals
     _log.info("Deleted inventory `{:s}` from qmtg's system stores.".format(inv.id))
 
 
-def addcards(store: storage.AutoSaveObjectStore, api: scryfall.ScryfallAgent, list_file: str, output_dir: str, name: str=None, id: str=None):
-    id_name = name
-    if id is not None:
-        id_name = id
-    if name is None and id_name is None:
-        name = "default"
-        id_name = name
-        meta, exists = store.get('/binders/.meta')
-        if exists:
-            num = 0
-            while id_name in meta.ids:
-                num += 1
-                id_name = name + '_' + str(num)
-    
-    if name == '':
-        _log.error("Can't create a binder with a blank name; either give a value or allow default to be set.")
+def addcards(store: storage.AutoSaveObjectStore, api: scryfall.ScryfallAgent, iid: str, *list_files: str):
+    inv, metadata = _get_inv_from_store(store, iid)
+    if inv is None:
         return
-    
-    try:
-        os.mkdir(output_dir)
-    except FileExistsError:
-        pass  # This is fine
 
-    _log.info("(1/6) Reading cards from tappedout inventory list...")
-    parsed_cards = list()
-    with open(list_file, 'r') as fp:
-        lineno = 0
-        for line in fp:
-            lineno += 1
-            if line.strip() == '':
-                continue
-            try:
-                c = tappedout.parse_list_line(line)           
-            except Exception as e:
-                _log.exception("skipping bad line {:d}: problem reading line".format(lineno))
-                continue
-                
-            parsed_cards.append(c)
+    if len(list_files) < 1:
+        raise ValueError("cannot add cards from empty set of card list files")
     
-    if len(parsed_cards) < 1:
-        _log.error("No cards were successfully processed!")
-        return
-    
-    _log.info("(2/6) Filling incomplete card data with data from scryfall...")
-    cards = list()
-    show_progress = util.once_every(timedelta(seconds=5), lambda: _log.info(util.progress(cards, parsed_cards)))
-    for c in parsed_cards:
-        show_progress()
-        if c.number == '':
-            # need to get the number
-            c.number = api.get_card_default_num(c.name, c.set)
+    cards_to_add = list()
+    for cardlist in list_files:
+        _log.info("Reading cards from tappedout inventory list {:s}...".format(cardlist))
+        
+        try:
+            parsed_cards = tappedout.parse_list_file(cardlist)
+        except ValueError as e:
+            _log.exception("Problem reading file {:s}: {:s}".format(cardlist, str(e)))
+            _log.error("Could not read {:s}".format(cardlist))
+            return
+        
+        _log.info("Filling incomplete card data in list with data from scryfall...")
+        show_progress = util.once_every(timedelta(seconds=5), lambda: _log.info(util.progress(cards, parsed_cards)))
+        for c in parsed_cards:
+            show_progress()
+            if c.number == '':
+                # need to get the number
+                c.number = api.get_card_default_num(c.name, c.set)
 
-        full_data = api.get_card_by_num(c.set, c.number).to_dict()
-        owned = OwnedCard(**full_data)
-        owned.foil = c.foil
-        owned.condition = c.condition
-        owned.count = c.count
-        cards.append(owned)
-    
-    cards = sorted(cards)
+            full_data = api.get_card_by_num(c.set, c.number).to_dict()
+            owned = OwnedCard(**full_data)
+            owned.foil = c.foil
+            owned.condition = c.condition
+            owned.count = c.count
+            cards_to_add.append(owned)
+        
+        cards = sorted(cards)
 
 def _get_inv_from_store(store: storage.AutoSaveObjectStore, iid: str) -> Tuple[inven.Inventory, inven.Metadata]:
     """

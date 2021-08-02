@@ -222,6 +222,7 @@ class Card:
     def __init__(self, **kwargs):
         self.id: uuid.UUID = uuid.UUID("00000000-0000-0000-0000-000000000000")
         self.set: str = ''
+        self.language: str = 'en'
         self.rarity: str = ''
         self.faces: List[Face] = list()
         self.number = None
@@ -242,6 +243,8 @@ class Card:
                 self.faces = list((f if isinstance(f, Face) else Face(**f)) for f in kwargs['faces'])
             if 'number' in kwargs:
                 self.number = kwargs['number']
+            if 'language' in kwargs:
+                self.language = kwargs['language']
             if 'active_face' in kwargs:
                 self.active_face = int(kwargs['active_face'])
 
@@ -289,6 +292,8 @@ class Card:
             if self.rarity != other.rarity:
                 return False
             if self.number != other.number:
+                return False
+            if self.language != other.language:
                 return False
             if len(self.faces) != len(other.faces):
                 return False
@@ -341,7 +346,7 @@ class Card:
         return not self.__le__(other)
     
     def __hash__(self) -> int:
-        return hash((self.id, self.set, self.rarity, self.number, frozenset(self.faces), self.active_face))
+        return hash((self.id, self.set, self.rarity, self.number, self.language, frozenset(self.faces), self.active_face))
 
     def __str__(self) -> str:
         return 'Card<{:s} {!r}>'.format(self.setnum, self.name)
@@ -580,6 +585,7 @@ class Card:
             'rarity': self.rarity,
             'faces': [f.to_dict() for f in self.faces],
             'number': self.number,
+            'language': self.language,
             'active_face': self.active_face
         }
 

@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import List, Tuple
 from . import card
 from .card import Face, OwnedCard, Card
 import logging
@@ -73,3 +73,22 @@ def to_card_line(c: OwnedCard) -> str:
     if c.condition != card.MINT:
         line += ' *' + c.condition.symbol + '*'
     return line
+
+def parse_list_file(fname: str) -> List[OwnedCard]:
+    parsed_cards = list()
+    with open(fname, 'r') as fp:
+        lineno = 0
+        for line in fp:
+            lineno += 1
+            if line.strip() == '':
+                continue
+            try:
+                c = parse_list_line(line)           
+            except Exception as e:
+                raise ValueError("Problem parsing line {:d}: {:s}".format(lineno, str(e)))
+            parsed_cards.append(c)
+    
+    if len(parsed_cards) < 1:
+        raise ValueError("No lines containing cards found in file")
+
+    return parsed_cards

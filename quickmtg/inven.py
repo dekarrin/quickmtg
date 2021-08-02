@@ -1,4 +1,5 @@
 import json
+import uuid
 
 from .card import Card, OwnedCard
 from . import util
@@ -14,7 +15,7 @@ class Inventory:
         self.id: str = ''
         self.name: str = ''
         self.path: str = ''
-        self.cards: Set[OwnedCard] = set()
+        self._cards: Dict[uuid.UUID, Any] = dict()
 
         if 'id' in kwargs:
             self.id = kwargs['id']

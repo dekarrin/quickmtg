@@ -191,63 +191,6 @@ class ScryfallAgent:
         self._save_cache()
 
         return entries
-
-
-    def get_card_by_name(self,
-            name: str, fuzzy: bool=False, set_code: Optional[str] = None
-    ) -> Card:
-        """Get details on a card by name. If fuzzy, fuzzy search is applied. If
-        set_code is given, it is a three to five-letter set code that the lookup
-        will be limited to.
-        
-        Raises APIError if there is an issue with the request.
-        """
-
-        set_code = set_code.lower()
-
-        params = {
-            'pretty': self._pretty_response
-        }
-        if fuzzy:
-            params['fuzzy'] = name
-        else:
-            params['exact'] = name
-
-        if set_code is not None:
-            params['set'] = set_code
-        
-        status, resp = self._http.request('GET', '/cards/named', query=params)
-        if status >= 400:
-            err = APIError.parse(resp)
-            raise err
-
-        c = _parse_resp_card(resp)
-        return c
-
-    def get_card_back_image(self) -> Tuple[bytes, str]:
-        """
-        Get the back image for a card, from cache or from the defined URI if cache
-        is not present.
-
-        Returns a tuple of the image bytes and the format extension, such as
-        'png', 'jpg', etc.
-        """
-        fmt = _BACK_IMAGE_URI.rsplit('.', 1)[1]
-
-        cachepath = '/images/misc/back.' + fmt
-        data, hit = self._filestore.get(cachepath)
-        if hit:
-            return data[0], fmt
-
-        _log.debug('Image cache miss for {:s}; retrieving from scryfall...'.format(cachepath))
-
-        image_data = http.download(_BACK_IMAGE_URI)
-
-        self._filestore.set(cachepath, image_data)
-        self._save_cache()
-
-        return image_data, fmt
-
     
     def search_cards(self,
             name: Optional[str], exact: bool=False, set_code: Optional[str]=None
@@ -291,6 +234,172 @@ class ScryfallAgent:
             results.append(c)
 
         return results
+
+    def get_card_by_name(self,
+            name: str, fuzzy: bool=False, set_code: Optional[str] = None
+    ) -> Card:
+        """Get details on a card by name. If fuzzy, fuzzy search is applied. If
+        set_code is given, it is a three to five-letter set code that the lookup
+        will be limited to.
+        
+        Raises APIError if there is an issue with the request.
+        """
+
+        set_code = set_code.lower()
+
+        params = {
+            'pretty': self._pretty_response
+        }
+        if fuzzy:
+            params['fuzzy'] = name
+        else:
+            params['exact'] = name
+
+        if set_code is not None:
+            params['set'] = set_code
+        
+        status, resp = self._http.request('GET', '/cards/named', query=params)
+        if status >= 400:
+            err = APIError.parse(resp)
+            raise err
+
+        c = _parse_resp_card(resp)
+        return c
+    
+    def get_card_by_id(self, sid: uuid.UUID) -> Card:
+        """
+        Get details on a card by its scryfall ID.
+        
+        Raises APIError if there is an issue with the request.
+        """
+
+        # check cache first, to see if we can just get the setnum-based ID
+        self.get_card_by_num
+        cachepath = '/id-map/cards/scryfall/{:s}'.format(str(sid))
+        cached, hit = self._cache.get(cachepath)
+        if hit:
+            set_code = cached['set']
+            num = cached['num']
+            lang = cached['lang']
+            return self.get_card_by_num(set_code, num, lang)
+
+        _log.debug('Data cache miss for Scryfall ID {:s}; retrieving from scryfall...'.format(cachepath))
+
+        params = {
+            'pretty': self._pretty_response
+        }
+        path = '/cards/{:s}'.format(str(sid))
+        status, resp = self._http.request('GET', path, query=params)
+        if status >= 400:
+            err = APIError.parse(resp)
+            raise err
+        
+        c = _parse_resp_card(resp)
+
+        # our cachepath only gives an id mapping; the 'real' cache is in set-num-lang based
+        # index.
+        setnum_cachepath = '/sets/{:s}/cards/{:s}/{:s}'.format(c.set, c.number, c.language)
+        self._cache.set(setnum_cachepath, c.to_dict())
+        self._cache.set(cachepath, {'set': c.set, 'num': c.number, 'lang': c.language})
+        self._save_cache()
+        
+        return c
+    
+    def get_card_by_num(self, set_code: str, number: str, lang: str=None) -> Card:
+        """
+        Get details on a card by its collector's number within a set. If
+        lang is given, card in that language is retrieved instead of the english
+        one.
+        
+        Raises APIError if there is an issue with the request.
+        """
+
+        set_code = set_code.lower()
+
+        # check cache first
+        cachelang = lang if lang is not None else 'en'
+        cachepath = '/sets/{:s}/cards/{:s}/{:s}'.format(set_code, number, cachelang)
+        cached, hit = self._cache.get(cachepath)
+        if hit:
+            return Card(**cached)
+
+        _log.debug('Data cache miss for {:s}; retrieving from scryfall...'.format(cachepath))
+
+        params = {
+            'pretty': self._pretty_response
+        }
+        lang_url = '/' + lang if lang is not None else ''
+        path = '/cards/{:s}/{:s}{:s}'.format(set_code, number, lang_url)
+        status, resp = self._http.request('GET', path, query=params)
+        if status >= 400:
+            err = APIError.parse(resp)
+            raise err
+        
+        c = _parse_resp_card(resp)
+        
+        self._cache.set(cachepath, c.to_dict())
+        # also set the ID mapping so calls to getting card by scryfall ID can get
+        # the correct one
+        self._cache.set('/id-map/cards/scryfall/' + str(c.id), {
+            'set': c.set,
+            'num': c.number,
+            'lang': c.language
+        })
+
+        self._save_cache()
+        return c
+    
+    def get_card_default_num(self, name: str, set_code: str) -> str:
+        """
+        Gets the default number for a card in a set when none is given. For
+        example, get_default_num("Alpine Watchdog", "M21") gives the number that
+        should be assumed for a card called 'Alpine Watchdog' in the set Core
+        2021 for when it does not specify a particular number.
+
+        This function caches results. If the default number cannot be found in
+        the cache, the search API is used to find it. It is then stored in the
+        cache for future calls.
+        """
+        set_code = set_code.lower()
+
+        cachename = name.lower().replace(' ', '_')
+        cachepath = '/sets/{:s}/defaults/{:s}'.format(set_code, cachename)
+        cached, hit = self._cache.get(cachepath)
+        if hit:
+            return cached
+            
+        _log.debug('Data cache miss for {:s}; retrieving from scryfall...'.format(cachepath))
+
+        candidates = self.search_cards(name, exact=True, set_code=set_code)
+        num = candidates[0].number
+        self._cache.set(cachepath, num)
+        self._save_cache()
+        return num
+
+    def get_card_back_image(self) -> Tuple[bytes, str]:
+        """
+        Get the back image for a card, from cache or from the defined URI if cache
+        is not present.
+
+        Returns a tuple of the image bytes and the format extension, such as
+        'png', 'jpg', etc.
+        """
+        fmt = _BACK_IMAGE_URI.rsplit('.', 1)[1]
+
+        cachepath = '/images/misc/back.' + fmt
+        data, hit = self._filestore.get(cachepath)
+        if hit:
+            return data[0], fmt
+
+        _log.debug('Image cache miss for {:s}; retrieving from scryfall...'.format(cachepath))
+
+        image_data = http.download(_BACK_IMAGE_URI)
+
+        self._filestore.set(cachepath, image_data)
+        self._save_cache()
+
+        return image_data, fmt
+
 
     def get_card_image(
         self,
@@ -386,69 +495,6 @@ class ScryfallAgent:
         self._cache.set(cachepath, s.to_dict())
         self._save_cache()
         return s
-    
-    def get_card_by_num(self, set_code: str, number: str, lang: str=None) -> Card:
-        """
-        Get details on a card by its collector's number within a set. If
-        lang is given, card in that language is retrieved instead of the english
-        one.
-        
-        Raises APIError if there is an issue with the request.
-        """
-
-        set_code = set_code.lower()
-
-        # check cache first
-        cachelang = lang if lang is not None else 'en'
-        cachepath = '/sets/{:s}/cards/{:s}/{:s}'.format(set_code, number, cachelang)
-        cached, hit = self._cache.get(cachepath)
-        if hit:
-            return Card(**cached)
-
-        _log.debug('Data cache miss for {:s}; retrieving from scryfall...'.format(cachepath))
-
-        params = {
-            'pretty': self._pretty_response
-        }
-        lang_url = '/' + lang if lang is not None else ''
-        path = '/cards/{:s}/{:s}{:s}'.format(set_code, number, lang_url)
-        status, resp = self._http.request('GET', path, query=params)
-        if status >= 400:
-            err = APIError.parse(resp)
-            raise err
-        
-        c = _parse_resp_card(resp)
-        
-        self._cache.set(cachepath, c.to_dict())
-        self._save_cache()
-        return c
-    
-    def get_card_default_num(self, name: str, set_code: str) -> str:
-        """
-        Gets the default number for a card in a set when none is given. For
-        example, get_default_num("Alpine Watchdog", "M21") gives the number that
-        should be assumed for a card called 'Alpine Watchdog' in the set Core
-        2021 for when it does not specify a particular number.
-
-        This function caches results. If the default number cannot be found in
-        the cache, the search API is used to find it. It is then stored in the
-        cache for future calls.
-        """
-        set_code = set_code.lower()
-
-        cachename = name.lower().replace(' ', '_')
-        cachepath = '/sets/{:s}/defaults/{:s}'.format(set_code, cachename)
-        cached, hit = self._cache.get(cachepath)
-        if hit:
-            return cached
-            
-        _log.debug('Data cache miss for {:s}; retrieving from scryfall...'.format(cachepath))
-
-        candidates = self.search_cards(name, exact=True, set_code=set_code)
-        num = candidates[0].number
-        self._cache.set(cachepath, num)
-        self._save_cache()
-        return num
         
     def _save_cache(self):
         try:
