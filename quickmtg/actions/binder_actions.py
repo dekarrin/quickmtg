@@ -15,15 +15,18 @@ def create(store: storage.AutoSaveObjectStore, api: scryfall.ScryfallAgent, list
     id_name = name
     if id is not None:
         id_name = id
-    if name is None and id_name is None:
-        name = "default"
-        id_name = name
-        meta, exists = store.get('/binders/.meta')
-        if exists:
-            num = 0
-            while id_name in meta.ids:
-                num += 1
-                id_name = name + '_' + str(num)
+    if name is None:
+        if id_name is None:
+            name = "default"
+            id_name = name
+            meta, exists = store.get('/binders/.meta')
+            if exists:
+                num = 0
+                while id_name in meta.ids:
+                    num += 1
+                    id_name = name + '_' + str(num)
+        else:
+            name = id_name
     
     if name == '':
         _log.error("Can't create a binder with a blank name; either give a value or allow default to be set.")

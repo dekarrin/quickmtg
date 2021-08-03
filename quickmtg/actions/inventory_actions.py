@@ -16,15 +16,18 @@ def create(store: storage.AutoSaveObjectStore, output_dir: str, name: str=None, 
     id_name = name
     if id is not None:
         id_name = id
-    if name is None and id_name is None:
-        name = "default"
-        id_name = name
-        meta, exists = store.get('/inventories/.meta')
-        if exists:
-            num = 0
-            while id_name in meta.ids:
-                num += 1
-                id_name = name + '_' + str(num)
+    if name is None:
+        if id_name is None:
+            name = "default"
+            id_name = name
+            meta, exists = store.get('/inventories/.meta')
+            if exists:
+                num = 0
+                while id_name in meta.ids:
+                    num += 1
+                    id_name = name + '_' + str(num)
+        else:
+            name = id_name
     
     if name == '':
         _log.error("Can't create an inventory with a blank name; either give a value or allow default to be set.")
@@ -35,8 +38,9 @@ def create(store: storage.AutoSaveObjectStore, output_dir: str, name: str=None, 
     except FileExistsError:
         pass  # This is fine
         
-    # dump info about the binder to the directory and main store
+    # dump info about the inventory to the directory and main store
     inv = inven.Inventory(path=output_dir, name=name, id=id_name)
+    _log.info("{!r}".format(inv))
     json_dest = os.path.join(output_dir, 'inventory.json')
     inv.to_file(json_dest)
     
@@ -127,7 +131,7 @@ def delete(store: storage.AutoSaveObjectStore, iid: str, delete_built: bool=Fals
     if inv is None:
         return
 
-    # got binder and meta, now do operations:
+    # got inven and meta, now do operations:
     if delete_built:
         try:
             shutil.rmtree(inv.path)
