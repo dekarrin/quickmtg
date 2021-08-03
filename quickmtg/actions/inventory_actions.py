@@ -99,7 +99,6 @@ def edit(store: storage.AutoSaveObjectStore, iid: str, newid: Optional[str]=None
     except Exception as e:
         _log.warning("System qmtg records updated successfully, but could not update inventory directory.")
         _log.warning("{!s}".format(e))
-        return
 
 def show(store: storage.AutoSaveObjectStore, iid: str, show_cards: bool=False, board_format: bool=False, no_meta: bool=False):
     inv, _ = _get_inv_from_store(store, iid)
@@ -160,7 +159,7 @@ def addcards(store: storage.AutoSaveObjectStore, api: scryfall.ScryfallAgent, ii
             _log.error("Could not read {:s}".format(cardlist))
             return
         
-        _log.info("Filling incomplete card data in list with data from scryfall...")
+        _log.info("  Filling incomplete card data in list with data from scryfall...")
         show_progress = util.once_every(timedelta(seconds=5), lambda: _log.info(util.progress(cards, parsed_cards)))
         for c in parsed_cards:
             show_progress()
@@ -174,8 +173,22 @@ def addcards(store: storage.AutoSaveObjectStore, api: scryfall.ScryfallAgent, ii
             owned.condition = c.condition
             owned.count = c.count
             cards_to_add.append(owned)
-        
-        cards = sorted(cards)
+
+    _log.info("Done reading cards, now adding...".format(cardlist))  
+    for c in cards_to_add:
+        inv.add_card(c, ['storage',] * c.count)
+    
+    store.set('/inventories/' + inv.id, inv)
+
+    inv_data_file = os.path.join(inv.path, 'inventory.json')
+    try:
+        inv.to_file(inv_data_file)
+    except Exception as e:
+        _log.warning("System qmtg records updated successfully, but could not update inventory directory.")
+        _log.warning("{!s}".format(e))
+
+    _log.info("Finished adding cards to inventory `{:s}`".format(iid))
+    
 
 def _get_inv_from_store(store: storage.AutoSaveObjectStore, iid: str) -> Tuple[inven.Inventory, inven.Metadata]:
     """
