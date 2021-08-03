@@ -518,7 +518,6 @@ def _parse_resp_face(f: Dict[str, Any]) -> Face:
     )
     return face
 
-
 def _parse_resp_card(resp: Dict[str, Any]) -> Card:
     c = Card(
         id=uuid.UUID(resp['id']),
@@ -529,7 +528,11 @@ def _parse_resp_card(resp: Dict[str, Any]) -> Card:
 
     # must parse each face
     layout = resp['layout']
-    if layout.lower() in ['split', 'flip', 'transform', 'double_faced_token', 'modal_dfc']:
+    if layout.lower() == 'art_series':
+        # we only care about the front for art series cards
+        face = _parse_resp_face(resp['card_faces'][0])
+        c.faces.append(face)
+    elif layout.lower() in ['split', 'flip', 'transform', 'double_faced_token', 'modal_dfc']:
         for f in resp['card_faces']:
             face = _parse_resp_face(f)
             c.faces.append(face)
