@@ -129,8 +129,12 @@ def delete(store: storage.AutoSaveObjectStore, iid: str, delete_built: bool=Fals
 
     # got binder and meta, now do operations:
     if delete_built:
-        shutil.rmtree(inv.path)
-        _log.info("Deleted built inventory directory {:s}".format(inv.path))
+        try:
+            shutil.rmtree(inv.path)
+        except Exception as e:
+            _log.warning("couldn't delete inventory directory: {:s}".format(str(e)))
+        else:
+            _log.info("Deleted built inventory directory {:s}".format(inv.path))
 
     store.batch()
     store.clear('/inventories/' + inv.id)
@@ -188,7 +192,7 @@ def addcards(store: storage.AutoSaveObjectStore, api: scryfall.ScryfallAgent, ii
         _log.warning("{!s}".format(e))
 
     _log.info("Finished adding cards to inventory `{:s}`".format(iid))
-    
+
 
 def _get_inv_from_store(store: storage.AutoSaveObjectStore, iid: str) -> Tuple[inven.Inventory, inven.Metadata]:
     """

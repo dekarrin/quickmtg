@@ -186,8 +186,12 @@ def delete(store: storage.AutoSaveObjectStore, bid: str, delete_built: bool=Fals
 
     # got binder and meta, now do operations:
     if delete_built:
-        shutil.rmtree(binder.path)
-        _log.info("Deleted built binder view site {:s}".format(binder.path))
+        try:
+            shutil.rmtree(binder.path)
+        except Exception as e:
+            _log.warning("couldn't delete binder site directory: {:s}".format(str(e)))
+        else:
+            _log.info("Deleted built binder view site {:s}".format(binder.path))
 
     store.batch()
     store.clear('/binders/' + binder.id)
