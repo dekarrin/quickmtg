@@ -133,11 +133,14 @@ class Inventory:
         if 'cards' in kwargs:
             cards = kwargs['cards']
             if isinstance(cards, dict):
-                for k, card_versions in cards:
+                for k in cards:
+                    card_versions = cards[k]
                     cid = uuid.UUID(str(k))
                     self._cards[cid] = dict()
-                    for foilcond, version in card_versions:
+                    for foilcond in card_versions:
+                        version = card_versions[foilcond]
                         self._cards[cid][str(foilcond)] = _CardData(**version)
+                        
             else:
                 # assume its sequencable at least
                 for c in cards:
@@ -228,15 +231,21 @@ class Inventory:
         Inventory(**i.to_dict()) is gauranteed to return a Inventory that
         compares equal to the original Inventory.
         """
+        cards_dict = {}
+        for cid in self._cards:
+            cval = self._cards[cid]
+            versions_dict = {}
+            for foilcond in cval:
+                c = cval[foilcond]
+                versions_dict[foilcond] = c.to_dict()
+
+            cards_dict[str(cid)] = versions_dict
+
         d = {
             'id': self.id,
             'name': self.name,
             'path': self.path,
-            'cards': {
-                str(cid): {
-                    foilcond: c.to_dict() for foilcond, c in cval
-                } for cid, cval in self._cards
-            }
+            'cards': cards_dict
         }
         return d
 

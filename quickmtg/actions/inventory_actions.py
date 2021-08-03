@@ -40,7 +40,6 @@ def create(store: storage.AutoSaveObjectStore, output_dir: str, name: str=None, 
         
     # dump info about the inventory to the directory and main store
     inv = inven.Inventory(path=output_dir, name=name, id=id_name)
-    _log.info("{!r}".format(inv))
     json_dest = os.path.join(output_dir, 'inventory.json')
     inv.to_file(json_dest)
     
@@ -110,9 +109,9 @@ def show(store: storage.AutoSaveObjectStore, iid: str, show_cards: bool=False, b
         return
 
     if not no_meta:
-        _log.info("Inventory ID: {:s}".format(inv.id))
-        _log.info("Name:         {:s}".format(inv.name))
-        _log.info("Location:     {:s}".format(inv.path))
+        _log.info("Inventory ID: {!s}".format(inv.id))
+        _log.info("Name:         {!s}".format(inv.name))
+        _log.info("Location:     {!s}".format(inv.path))
     
     if not show_cards:
         _log.info("Cards:        {:d}".format(len(inv.cards)))
@@ -124,7 +123,7 @@ def show(store: storage.AutoSaveObjectStore, iid: str, show_cards: bool=False, b
             if board_format:
                 _log.info(tappedout.to_list_line(c))
             else:
-                _log.info('{:s}'.format(c))
+                _log.info('{!s}'.format(c))
 
 def delete(store: storage.AutoSaveObjectStore, iid: str, delete_built: bool=False):
     inv, metadata = _get_inv_from_store(store, iid)
@@ -168,7 +167,8 @@ def addcards(store: storage.AutoSaveObjectStore, api: scryfall.ScryfallAgent, ii
             return
         
         _log.info("  Filling incomplete card data in list with data from scryfall...")
-        show_progress = util.once_every(timedelta(seconds=5), lambda: _log.info(util.progress(cards, parsed_cards)))
+        update_count = 0
+        show_progress = util.once_every(timedelta(seconds=5), lambda: _log.info(util.progress(update_count, parsed_cards)))
         for c in parsed_cards:
             show_progress()
             if c.number == '':
@@ -181,6 +181,7 @@ def addcards(store: storage.AutoSaveObjectStore, api: scryfall.ScryfallAgent, ii
             owned.condition = c.condition
             owned.count = c.count
             cards_to_add.append(owned)
+            update_count += 1
 
     _log.info("Done reading cards, now adding...".format(cardlist))  
     for c in cards_to_add:
