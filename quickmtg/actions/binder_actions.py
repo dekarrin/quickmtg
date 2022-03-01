@@ -2,6 +2,7 @@ from datetime import timedelta
 from typing import Optional, Sequence, Tuple
 from ..card import OwnedCard, SizeLarge, image_slug
 from .. import scryfall, tappedout, layout, util, storage, binder as qmtgbinder
+from .inventory_actions import get_inv_from_store
 from ..iterutil import grouper
 import logging
 import os
@@ -11,7 +12,7 @@ import shutil
 _log = logging.getLogger(__name__)
 _log.setLevel(logging.DEBUG)
 
-def create(store: storage.AutoSaveObjectStore, api: scryfall.ScryfallAgent, list_file: str, output_dir: str, name: str=None, id: str=None):
+def create(store: storage.AutoSaveObjectStore, api: scryfall.ScryfallAgent, inven_id: str, output_dir: str, name: str=None, id: str=None):
     id_name = name
     if id is not None:
         id_name = id
@@ -37,21 +38,12 @@ def create(store: storage.AutoSaveObjectStore, api: scryfall.ScryfallAgent, list
     except FileExistsError:
         pass  # This is fine
 
-    _log.info("(1/6) Reading cards from tappedout inventory list...")
-    parsed_cards = list()
-    with open(list_file, 'r') as fp:
-        lineno = 0
-        for line in fp:
-            lineno += 1
-            if line.strip() == '':
-                continue
-            try:
-                c = tappedout.parse_list_line(line)           
-            except Exception as e:
-                _log.exception("skipping bad line {:d}: problem reading line".format(lineno))
-                continue
-                
-            parsed_cards.append(c)
+    inv, meta = get_inv_from_store(store, inven_id)
+    if inv is None:
+        _log.error("Inventory {!r} does not exist".format(inven_id))
+    
+    _log.info("(1/6) Reading cards from inventory...")
+    parsed_cards = list(inv.cards)
     
     if len(parsed_cards) < 1:
         _log.error("No cards were successfully processed!")

@@ -374,6 +374,7 @@ class Card:
 
     def _type_order_index(self) -> int:
         supertypes, card_type, subtypes = self._parsed_type()
+        print("{!r}, {!r}, {!r}".format(supertypes, card_type, subtypes))
 
         if card_type == 'creature':
             checked_supertypes = list(supertypes)

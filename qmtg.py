@@ -114,9 +114,9 @@ def _parse_cli_and_run():
     binder_create_parser = binder_subs.add_parser('create', help='Create a new binder view from the given owned cards list. HTML pages containing the binder are output to a directory, and an index.html is created as the starting point for viewing the binder.', description='Create a new binder view.')
     binder_create_parser.add_argument('-n', '--name', help="what to call the binder view")
     binder_create_parser.add_argument('--id', help="An ID to internally call the binder")
-    binder_create_parser.add_argument('input_list', help='The file to parse for the cards in it. Must contain a list in tappedout.net board format text, which is known to sometimes be not perfect.')
+    binder_create_parser.add_argument('inventory', help="The inventory to create the binder from")
     binder_create_parser.add_argument('output_dir', help="The directory to store the output files in. Will be created if it doesn't already exist.")
-    binder_create_parser.set_defaults(func=lambda ns: binders.create(store, api, ns.input_list, ns.output_dir, name=ns.name, id=ns.id))
+    binder_create_parser.set_defaults(func=lambda ns: binders.create(store, api, ns.inventory, ns.output_dir, name=ns.name, id=ns.id))
 
     # Card actions
     card_parser = subparsers.add_parser('card', help='Perform an action against the card API.', description="Card lookup actions.")

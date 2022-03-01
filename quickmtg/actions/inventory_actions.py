@@ -63,7 +63,7 @@ def list_all(store: storage.AutoSaveObjectStore):
         _log.info(id)
 
 def edit(store: storage.AutoSaveObjectStore, iid: str, newid: Optional[str]=None, newname: Optional[str]=None, newpath: Optional[str]=None):
-    inv, metadata = _get_inv_from_store(store, iid)
+    inv, metadata = get_inv_from_store(store, iid)
     if inv is None:
         return
     
@@ -104,7 +104,7 @@ def edit(store: storage.AutoSaveObjectStore, iid: str, newid: Optional[str]=None
         _log.warning("{!s}".format(e))
 
 def show(store: storage.AutoSaveObjectStore, iid: str, show_cards: bool=False, board_format: bool=False, no_meta: bool=False):
-    inv, _ = _get_inv_from_store(store, iid)
+    inv, _ = get_inv_from_store(store, iid)
     if inv is None:
         return
 
@@ -126,7 +126,7 @@ def show(store: storage.AutoSaveObjectStore, iid: str, show_cards: bool=False, b
                 _log.info('{!s}'.format(c))
 
 def delete(store: storage.AutoSaveObjectStore, iid: str, delete_built: bool=False):
-    inv, metadata = _get_inv_from_store(store, iid)
+    inv, metadata = get_inv_from_store(store, iid)
     if inv is None:
         return
 
@@ -148,7 +148,7 @@ def delete(store: storage.AutoSaveObjectStore, iid: str, delete_built: bool=Fals
 
 
 def addcards(store: storage.AutoSaveObjectStore, api: scryfall.ScryfallAgent, iid: str, *list_files: str):
-    inv, metadata = _get_inv_from_store(store, iid)
+    inv, metadata = get_inv_from_store(store, iid)
     if inv is None:
         return
 
@@ -199,7 +199,7 @@ def addcards(store: storage.AutoSaveObjectStore, api: scryfall.ScryfallAgent, ii
     _log.info("Finished adding cards to inventory `{:s}`".format(iid))
 
 
-def _get_inv_from_store(store: storage.AutoSaveObjectStore, iid: str) -> Tuple[inven.Inventory, inven.Metadata]:
+def get_inv_from_store(store: storage.AutoSaveObjectStore, iid: str) -> Tuple[inven.Inventory, inven.Metadata]:
     """
     Get inventory from store, checking metadata to ensure all is well with it.
 

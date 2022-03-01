@@ -45,6 +45,8 @@ def parse_card_id(line: str) -> Card:
 
 def to_card_id(c: Card) -> str:
     fmt = '{:s} ({:s})'
+    if len(c.faces) < 1:
+        raise ValueError("Card ID {!r} has no faces".format(c.id))
     return fmt.format(c.faces[0].name, c.setnum.upper())
 
 def parse_card_line(line: str) -> OwnedCard:
